@@ -20,3 +20,4 @@ fi
 # 3. Start the FastAPI server
 echo "Starting server on port 5000..."
 uvicorn api.main:app --host 0.0.0.0 --port 5000
+git push origin claude/factor-model-setup-iDm60
