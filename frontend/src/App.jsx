@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { FactorInfoPopover } from "./FactorInfo";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
@@ -151,12 +152,24 @@ function SummaryTable({ data }) {
         <thead>
           <tr>
             <th>Ticker</th>
-            <th>Alpha (ann.)</th>
+            <th>
+              <FactorInfoPopover factorKey="Alpha">
+                Alpha (ann.)
+              </FactorInfoPopover>
+            </th>
             {factor_names.map((f) => (
-              <th key={f}>Beta {f}</th>
+              <th key={f}>
+                <FactorInfoPopover factorKey={f}>Beta {f}</FactorInfoPopover>
+              </th>
             ))}
-            <th>R²</th>
-            <th>Idio Vol</th>
+            <th>
+              <FactorInfoPopover factorKey="R_squared">R²</FactorInfoPopover>
+            </th>
+            <th>
+              <FactorInfoPopover factorKey="Idio_Vol">
+                Idio Vol
+              </FactorInfoPopover>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -192,18 +205,32 @@ function BetasChart({ data }) {
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      <BarChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="ticker" />
-        <YAxis />
-        <Tooltip formatter={(v) => v.toFixed(3)} />
-        <Legend />
+    <div>
+      <div className="factor-legend">
         {factor_names.map((f, i) => (
-          <Bar key={f} dataKey={f} fill={COLORS[i % COLORS.length]} />
+          <FactorInfoPopover key={f} factorKey={f}>
+            <span className="factor-legend-item">
+              <span
+                className="factor-legend-swatch"
+                style={{ background: COLORS[i % COLORS.length] }}
+              />
+              {f}
+            </span>
+          </FactorInfoPopover>
         ))}
-      </BarChart>
-    </ResponsiveContainer>
+      </div>
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="ticker" />
+          <YAxis />
+          <Tooltip formatter={(v) => v.toFixed(3)} />
+          {factor_names.map((f, i) => (
+            <Bar key={f} dataKey={f} fill={COLORS[i % COLORS.length]} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -248,23 +275,37 @@ function VarianceChart({ data }) {
   const allKeys = [...factor_names, "Idiosyncratic"];
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      <BarChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="ticker" />
-        <YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} />
-        <Tooltip formatter={(v) => `${v.toFixed(1)}%`} />
-        <Legend />
+    <div>
+      <div className="factor-legend">
         {allKeys.map((k, i) => (
-          <Bar
-            key={k}
-            dataKey={k}
-            stackId="a"
-            fill={COLORS[i % COLORS.length]}
-          />
+          <FactorInfoPopover key={k} factorKey={k === "Idiosyncratic" ? "Idio_Vol" : k}>
+            <span className="factor-legend-item">
+              <span
+                className="factor-legend-swatch"
+                style={{ background: COLORS[i % COLORS.length] }}
+              />
+              {k}
+            </span>
+          </FactorInfoPopover>
         ))}
-      </BarChart>
-    </ResponsiveContainer>
+      </div>
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="ticker" />
+          <YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} />
+          <Tooltip formatter={(v) => `${v.toFixed(1)}%`} />
+          {allKeys.map((k, i) => (
+            <Bar
+              key={k}
+              dataKey={k}
+              stackId="a"
+              fill={COLORS[i % COLORS.length]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

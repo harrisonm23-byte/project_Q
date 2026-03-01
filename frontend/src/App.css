@@ -227,6 +227,180 @@ tr:last-child td {
   color: var(--red);
 }
 
+/* ── Factor Info Popover ──────────────────────────────────────────────────── */
+
+.factor-info-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.factor-info-trigger {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-bottom: 1px dashed var(--muted);
+  padding-bottom: 1px;
+  transition: color 0.15s;
+}
+
+.factor-info-trigger:hover {
+  color: var(--accent);
+}
+
+.factor-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 0.55rem;
+  font-weight: 700;
+  font-style: italic;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.factor-popover {
+  z-index: 10000;
+  width: 340px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: popoverIn 0.15s ease-out;
+}
+
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.factor-popover-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.factor-popover-header h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  flex: 1;
+  color: var(--text);
+}
+
+.factor-popover-badge {
+  background: var(--accent);
+  color: white;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.factor-popover-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.factor-popover-close:hover {
+  color: var(--text);
+}
+
+.factor-popover-body {
+  padding: 0.75rem 1rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.factor-popover-section {
+  margin-bottom: 0.75rem;
+}
+
+.factor-popover-section:last-child {
+  margin-bottom: 0;
+}
+
+.factor-popover-section h4 {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.factor-popover-section p {
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.factor-formula {
+  display: block;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 0.78rem;
+  color: var(--accent-hover);
+  margin-bottom: 0.35rem;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.factor-formula-desc {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+/* ── Factor Legend (clickable) ────────────────────────────────────────────── */
+
+.factor-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+}
+
+.factor-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.factor-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
 /* ── Recharts overrides ──────────────────────────────────────────────────── */
 
 .recharts-cartesian-grid-horizontal line,
