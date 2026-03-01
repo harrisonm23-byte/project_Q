@@ -44,6 +44,7 @@ class AnalyzeResponse(BaseModel):
     betas: dict[str, dict[str, float]]
     r_squared: dict[str, dict[str, float]]
     variance_attr: dict[str, dict[str, float]]
+    rolling_betas: dict[str, list[dict]] | None = None
     factor_names: list[str]
     tickers: list[str]
 
@@ -88,7 +89,20 @@ def analyze(req: AnalyzeRequest):
         r2 = model.get_r_squared()
         var_attr = variance_attribution(model)
 
-        # 4. Convert to JSON-safe dicts (replace NaN with None)
+        # 4. Rolling factor exposures (36-month window, or shorter if not enough data)
+        n_months = len(model._align_data()[0])
+        roll_window = min(36, max(12, n_months - 1))
+        rolling = model.rolling_betas(window=roll_window)
+        rolling_json: dict[str, list[dict]] = {}
+        for tick, rdf in rolling.items():
+            rdf_clean = rdf.copy()
+            rdf_clean.index = rdf_clean.index.strftime("%Y-%m-%d")
+            rdf_clean = rdf_clean.where(pd.notnull(rdf_clean), None)
+            rolling_json[tick] = rdf_clean.reset_index().rename(
+                columns={"date": "date"}
+            ).to_dict(orient="records")
+
+        # 5. Convert to JSON-safe dicts (replace NaN with None)
         def clean(df_or_series):
             return df_or_series.where(pd.notnull(df_or_series), None)
 
@@ -98,6 +112,7 @@ def analyze(req: AnalyzeRequest):
             betas=clean(betas).to_dict(orient="index"),
             r_squared=clean(r2).to_dict(orient="index"),
             variance_attr=clean(var_attr).to_dict(orient="index"),
+            rolling_betas=rolling_json,
             factor_names=model.factor_names,
             tickers=list(model.results.keys()),
         )

@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -116,7 +118,7 @@ export default function App() {
       {data && (
         <div className="results">
           <nav className="tabs">
-            {["summary", "betas", "r_squared", "variance"].map((tab) => (
+            {["summary", "betas", "r_squared", "variance", "rolling"].map((tab) => (
               <button
                 key={tab}
                 className={activeTab === tab ? "active" : ""}
@@ -126,6 +128,7 @@ export default function App() {
                 {tab === "betas" && "Factor Loadings"}
                 {tab === "r_squared" && "R-Squared"}
                 {tab === "variance" && "Variance Attribution"}
+                {tab === "rolling" && "Rolling Exposures"}
               </button>
             ))}
           </nav>
@@ -135,6 +138,7 @@ export default function App() {
             {activeTab === "betas" && <BetasChart data={data} />}
             {activeTab === "r_squared" && <RSquaredChart data={data} />}
             {activeTab === "variance" && <VarianceChart data={data} />}
+            {activeTab === "rolling" && <RollingChart data={data} />}
           </div>
         </div>
       )}
@@ -304,6 +308,89 @@ function VarianceChart({ data }) {
             />
           ))}
         </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* ── Rolling Factor Exposures Chart ─────────────────────────────────────── */
+
+function RollingChart({ data }) {
+  const { rolling_betas, tickers, factor_names } = data;
+  const [selectedTicker, setSelectedTicker] = useState(tickers[0]);
+
+  if (!rolling_betas || Object.keys(rolling_betas).length === 0) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        Not enough data for rolling analysis. Try a longer date range.
+      </p>
+    );
+  }
+
+  const tickerData = rolling_betas[selectedTicker] || [];
+  const chartData = tickerData.map((row) => ({
+    ...row,
+    date: row.date.slice(0, 7), // YYYY-MM
+  }));
+
+  return (
+    <div>
+      <div className="rolling-controls">
+        <label className="rolling-label">Ticker</label>
+        <div className="rolling-ticker-pills">
+          {tickers
+            .filter((t) => rolling_betas[t])
+            .map((t) => (
+              <button
+                key={t}
+                className={`rolling-pill ${t === selectedTicker ? "active" : ""}`}
+                onClick={() => setSelectedTicker(t)}
+              >
+                {t}
+              </button>
+            ))}
+        </div>
+      </div>
+
+      <div className="factor-legend">
+        {factor_names.map((f, i) => (
+          <FactorInfoPopover key={f} factorKey={f}>
+            <span className="factor-legend-item">
+              <span
+                className="factor-legend-swatch"
+                style={{ background: COLORS[i % COLORS.length] }}
+              />
+              {f}
+            </span>
+          </FactorInfoPopover>
+        ))}
+      </div>
+
+      <ResponsiveContainer width="100%" height={400}>
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 11 }}
+            interval="preserveStartEnd"
+          />
+          <YAxis />
+          <Tooltip
+            formatter={(v) => v.toFixed(3)}
+            labelFormatter={(label) => `Date: ${label}`}
+          />
+          {factor_names.map((f, i) => (
+            <Line
+              key={f}
+              type="monotone"
+              dataKey={f}
+              stroke={COLORS[i % COLORS.length]}
+              strokeWidth={2}
+              dot={false}
+              name={f}
+            />
+          ))}
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );

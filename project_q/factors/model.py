@@ -172,6 +172,56 @@ class FactorModel:
 
         return systematic_cov, idiosyncratic_cov
 
+    def rolling_betas(
+        self, window: int = 36
+    ) -> dict[str, pd.DataFrame]:
+        """Compute factor betas over a rolling window for each asset.
+
+        Parameters
+        ----------
+        window : int
+            Number of periods (months) in each rolling window.
+
+        Returns
+        -------
+        dict[str, pd.DataFrame]
+            Mapping of ticker → DataFrame with columns = factor names + "alpha",
+            indexed by the end-date of each rolling window.
+        """
+        ret, fac = self._align_data()
+        rf = fac[self.rf_column]
+        factor_data = fac[self.factor_names]
+
+        result: dict[str, pd.DataFrame] = {}
+
+        for ticker in ret.columns:
+            excess = ret[ticker] - rf
+            records = []
+
+            for i in range(window, len(excess) + 1):
+                y_win = excess.iloc[i - window : i]
+                X_win = sm.add_constant(factor_data.iloc[i - window : i])
+
+                mask = y_win.notna() & X_win.notna().all(axis=1)
+                y_clean = y_win[mask]
+                X_clean = X_win[mask]
+
+                if len(y_clean) < len(self.factor_names) + 2:
+                    continue
+
+                ols = sm.OLS(y_clean, X_clean).fit()
+                row = {name: ols.params[name] for name in self.factor_names}
+                row["alpha"] = ols.params["const"] * 12  # annualize
+                row["r_squared"] = ols.rsquared
+                row["date"] = excess.index[i - 1]
+                records.append(row)
+
+            if records:
+                df = pd.DataFrame(records).set_index("date")
+                result[ticker] = df
+
+        return result
+
     def summary(self) -> pd.DataFrame:
         """Print a consolidated summary table of the factor model results."""
         if not self.results:
