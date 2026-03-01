@@ -1,0 +1,276 @@
+import React, { useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+
+const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
+
+const DEFAULT_TICKERS = "AAPL, MSFT, GOOGL, AMZN, JPM";
+
+export default function App() {
+  const [tickers, setTickers] = useState(DEFAULT_TICKERS);
+  const [start, setStart] = useState("2019-01-01");
+  const [end, setEnd] = useState("2024-12-31");
+  const [momentum, setMomentum] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [data, setData] = useState(null);
+  const [activeTab, setActiveTab] = useState("summary");
+
+  async function handleAnalyze(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setData(null);
+
+    const tickerList = tickers
+      .split(",")
+      .map((t) => t.trim().toUpperCase())
+      .filter(Boolean);
+
+    try {
+      const resp = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tickers: tickerList,
+          start,
+          end,
+          include_momentum: momentum,
+        }),
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        throw new Error(body.detail || `Server error ${resp.status}`);
+      }
+      setData(await resp.json());
+      setActiveTab("summary");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="app">
+      <header>
+        <h1>Project Q</h1>
+        <p className="subtitle">Fama-French Factor Model Analysis</p>
+      </header>
+
+      {/* ── Input Form ─────────────────────────────── */}
+      <form className="controls" onSubmit={handleAnalyze}>
+        <div className="field">
+          <label>Tickers (comma-separated)</label>
+          <input
+            type="text"
+            value={tickers}
+            onChange={(e) => setTickers(e.target.value)}
+            placeholder="AAPL, MSFT, GOOGL"
+          />
+        </div>
+        <div className="field">
+          <label>Start date</label>
+          <input
+            type="date"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label>End date</label>
+          <input
+            type="date"
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+          />
+        </div>
+        <div className="field checkbox">
+          <label>
+            <input
+              type="checkbox"
+              checked={momentum}
+              onChange={(e) => setMomentum(e.target.checked)}
+            />
+            Include momentum factor
+          </label>
+        </div>
+        <button type="submit" disabled={loading}>
+          {loading ? "Analyzing..." : "Run Analysis"}
+        </button>
+      </form>
+
+      {error && <div className="error">{error}</div>}
+
+      {/* ── Results ─────────────────────────────────── */}
+      {data && (
+        <div className="results">
+          <nav className="tabs">
+            {["summary", "betas", "r_squared", "variance"].map((tab) => (
+              <button
+                key={tab}
+                className={activeTab === tab ? "active" : ""}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === "summary" && "Summary"}
+                {tab === "betas" && "Factor Loadings"}
+                {tab === "r_squared" && "R-Squared"}
+                {tab === "variance" && "Variance Attribution"}
+              </button>
+            ))}
+          </nav>
+
+          <div className="tab-content">
+            {activeTab === "summary" && <SummaryTable data={data} />}
+            {activeTab === "betas" && <BetasChart data={data} />}
+            {activeTab === "r_squared" && <RSquaredChart data={data} />}
+            {activeTab === "variance" && <VarianceChart data={data} />}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Summary Table ──────────────────────────────────────────────────────── */
+
+function SummaryTable({ data }) {
+  const { summary, tickers, factor_names } = data;
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Alpha (ann.)</th>
+            {factor_names.map((f) => (
+              <th key={f}>Beta {f}</th>
+            ))}
+            <th>R²</th>
+            <th>Idio Vol</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tickers.map((t) => {
+            const row = summary[t];
+            return (
+              <tr key={t}>
+                <td className="ticker">{t}</td>
+                <td className={row.alpha_annualized >= 0 ? "pos" : "neg"}>
+                  {fmt(row.alpha_annualized)}
+                </td>
+                {factor_names.map((f) => (
+                  <td key={f}>{fmt(row[`beta_${f}`])}</td>
+                ))}
+                <td>{fmt(row.R_squared)}</td>
+                <td>{fmt(row.idio_vol_annual)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ── Factor Loadings (Betas) Chart ──────────────────────────────────────── */
+
+function BetasChart({ data }) {
+  const { betas, tickers, factor_names } = data;
+  const chartData = tickers.map((t) => ({
+    ticker: t,
+    ...betas[t],
+  }));
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={chartData}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="ticker" />
+        <YAxis />
+        <Tooltip formatter={(v) => v.toFixed(3)} />
+        <Legend />
+        {factor_names.map((f, i) => (
+          <Bar key={f} dataKey={f} fill={COLORS[i % COLORS.length]} />
+        ))}
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* ── R-Squared Chart ────────────────────────────────────────────────────── */
+
+function RSquaredChart({ data }) {
+  const { r_squared, tickers } = data;
+  const chartData = tickers
+    .map((t) => ({ ticker: t, R2: r_squared[t].R_squared }))
+    .sort((a, b) => a.R2 - b.R2);
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={chartData} layout="vertical">
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis type="number" domain={[0, 1]} />
+        <YAxis dataKey="ticker" type="category" width={60} />
+        <Tooltip formatter={(v) => v.toFixed(4)} />
+        <Bar dataKey="R2" name="R²">
+          {chartData.map((_, i) => (
+            <Cell key={i} fill={COLORS[0]} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* ── Variance Attribution Chart ─────────────────────────────────────────── */
+
+function VarianceChart({ data }) {
+  const { variance_attr, tickers, factor_names } = data;
+  const chartData = tickers.map((t) => {
+    const row = { ticker: t };
+    factor_names.forEach((f) => {
+      row[f] = variance_attr[t][`pct_${f}`] * 100;
+    });
+    row["Idiosyncratic"] = variance_attr[t].pct_idiosyncratic * 100;
+    return row;
+  });
+
+  const allKeys = [...factor_names, "Idiosyncratic"];
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={chartData}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="ticker" />
+        <YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} />
+        <Tooltip formatter={(v) => `${v.toFixed(1)}%`} />
+        <Legend />
+        {allKeys.map((k, i) => (
+          <Bar
+            key={k}
+            dataKey={k}
+            stackId="a"
+            fill={COLORS[i % COLORS.length]}
+          />
+        ))}
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+
+function fmt(val) {
+  if (val == null) return "—";
+  return val.toFixed(4);
+}

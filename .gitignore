@@ -7,3 +7,6 @@ build/
 *.png
 .ruff_cache/
 .pytest_cache/
+# Frontend
+frontend/node_modules/
+api/static/

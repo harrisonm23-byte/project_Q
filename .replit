@@ -1,0 +1,14 @@
+# Project Q — Factor Model Web App
+# "Run" starts both the FastAPI backend and serves the React frontend.
+
+run = "bash run.sh"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["bash", "run.sh"]
+
+[[ports]]
+localPort = 8000
+externalPort = 80
