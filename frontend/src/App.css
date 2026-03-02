@@ -596,6 +596,267 @@ tr:last-child td {
   flex-shrink: 0;
 }
 
+/* ── Variance Chart header ──────────────────────────────────────────────── */
+
+.variance-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.variance-click-hint {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ── Hedge Strategy Panel ──────────────────────────────────────────────── */
+
+.hedge-panel {
+  margin-top: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  animation: hedgePanelIn 0.2s ease-out;
+}
+
+@keyframes hedgePanelIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hedge-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.hedge-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.hedge-panel-ticker {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.hedge-panel-dot {
+  color: var(--muted);
+}
+
+.hedge-panel-factor {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.hedge-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hedge-summary-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.hedge-summary-btn:hover {
+  background: var(--accent-hover);
+}
+
+.hedge-close-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.hedge-close-btn:hover {
+  color: var(--text);
+}
+
+.hedge-panel-body {
+  padding: 1rem;
+}
+
+/* Stats row */
+.hedge-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.hedge-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.hedge-stat-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hedge-stat-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sections */
+.hedge-section {
+  margin-bottom: 0.85rem;
+}
+
+.hedge-section:last-child {
+  margin-bottom: 0;
+}
+
+.hedge-section h4 {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+}
+
+.hedge-section p {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+/* Instruments list */
+.hedge-instruments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hedge-instrument {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.hedge-instrument-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hedge-instrument-desc {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+.hedge-sizing {
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 0.78rem;
+  color: var(--accent-hover);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Summary panel — factor list */
+.hedge-factor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hedge-factor-row {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.hedge-factor-row-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hedge-factor-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 60px;
+}
+
+.hedge-factor-pct {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.hedge-factor-urgency {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hedge-factor-row-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.hedge-factor-beta {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+}
+
+.hedge-factor-rec {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.hedge-factor-skip {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* ── Rolling Exposures Controls ──────────────────────────────────────────── */
 
 .rolling-controls {

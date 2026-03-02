@@ -13,6 +13,7 @@ import {
   Cell,
 } from "recharts";
 import { FactorInfoPopover } from "./FactorInfo";
+import { FactorHedgePanel, SummaryHedgePanel } from "./HedgePanel";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
@@ -396,7 +397,9 @@ function RSquaredChart({ data }) {
 /* ── Variance Attribution Chart ─────────────────────────────────────────── */
 
 function VarianceChart({ data }) {
-  const { variance_attr, tickers, factor_names } = data;
+  const { variance_attr, betas, tickers, factor_names } = data;
+  const [hedgeSelection, setHedgeSelection] = useState(null); // { ticker, factor } or { ticker, summary: true }
+
   const chartData = tickers.map((t) => {
     const row = { ticker: t };
     factor_names.forEach((f) => {
@@ -408,20 +411,40 @@ function VarianceChart({ data }) {
 
   const allKeys = [...factor_names, "Idiosyncratic"];
 
+  function handleBarClick(factorKey, entry) {
+    if (!entry || factorKey === "Idiosyncratic") return;
+    const ticker = entry.ticker;
+    // Toggle off if clicking the same segment
+    if (hedgeSelection?.ticker === ticker && hedgeSelection?.factor === factorKey) {
+      setHedgeSelection(null);
+    } else {
+      setHedgeSelection({ ticker, factor: factorKey });
+    }
+  }
+
+  function handleShowSummary() {
+    if (hedgeSelection) {
+      setHedgeSelection({ ticker: hedgeSelection.ticker, summary: true });
+    }
+  }
+
   return (
     <div>
-      <div className="factor-legend">
-        {allKeys.map((k, i) => (
-          <FactorInfoPopover key={k} factorKey={k === "Idiosyncratic" ? "Idio_Vol" : k}>
-            <span className="factor-legend-item">
-              <span
-                className="factor-legend-swatch"
-                style={{ background: COLORS[i % COLORS.length] }}
-              />
-              {k}
-            </span>
-          </FactorInfoPopover>
-        ))}
+      <div className="variance-header">
+        <div className="factor-legend">
+          {allKeys.map((k, i) => (
+            <FactorInfoPopover key={k} factorKey={k === "Idiosyncratic" ? "Idio_Vol" : k}>
+              <span className="factor-legend-item">
+                <span
+                  className="factor-legend-swatch"
+                  style={{ background: COLORS[i % COLORS.length] }}
+                />
+                {k}
+              </span>
+            </FactorInfoPopover>
+          ))}
+        </div>
+        <span className="variance-click-hint">Click a factor segment to see hedge strategies</span>
       </div>
       <ResponsiveContainer width="100%" height={400}>
         <BarChart data={chartData}>
@@ -435,10 +458,33 @@ function VarianceChart({ data }) {
               dataKey={k}
               stackId="a"
               fill={COLORS[i % COLORS.length]}
+              cursor={k !== "Idiosyncratic" ? "pointer" : "default"}
+              onClick={(entry) => handleBarClick(k, entry)}
             />
           ))}
         </BarChart>
       </ResponsiveContainer>
+
+      {/* Hedge strategy panel */}
+      {hedgeSelection && !hedgeSelection.summary && (
+        <FactorHedgePanel
+          ticker={hedgeSelection.ticker}
+          factor={hedgeSelection.factor}
+          beta={betas[hedgeSelection.ticker]?.[hedgeSelection.factor] ?? 0}
+          pctVariance={(variance_attr[hedgeSelection.ticker]?.[`pct_${hedgeSelection.factor}`] ?? 0) * 100}
+          onClose={() => setHedgeSelection(null)}
+          onShowSummary={handleShowSummary}
+        />
+      )}
+      {hedgeSelection?.summary && (
+        <SummaryHedgePanel
+          ticker={hedgeSelection.ticker}
+          betas={betas}
+          varianceAttr={variance_attr}
+          factorNames={factor_names}
+          onClose={() => setHedgeSelection(null)}
+        />
+      )}
     </div>
   );
 }
