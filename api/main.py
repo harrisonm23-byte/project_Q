@@ -36,7 +36,7 @@ class AnalyzeRequest(BaseModel):
     start: str = "2019-01-01"
     end: str = "2024-12-31"
     include_momentum: bool = True
-    rolling_window: int = 36
+    rolling_window: int | None = 36
 
 
 class AnalyzeResponse(BaseModel):
@@ -90,18 +90,20 @@ def analyze(req: AnalyzeRequest):
         r2 = model.get_r_squared()
         var_attr = variance_attribution(model)
 
-        # 4. Rolling factor exposures (user-selected window, clamped to available data)
-        n_months = len(model._align_data()[0])
-        roll_window = min(req.rolling_window, max(12, n_months - 1))
-        rolling = model.rolling_betas(window=roll_window)
-        rolling_json: dict[str, list[dict]] = {}
-        for tick, rdf in rolling.items():
-            rdf_clean = rdf.copy()
-            rdf_clean.index = rdf_clean.index.strftime("%Y-%m-%d")
-            rdf_clean = rdf_clean.where(pd.notnull(rdf_clean), None)
-            rolling_json[tick] = rdf_clean.reset_index().rename(
-                columns={"date": "date"}
-            ).to_dict(orient="records")
+        # 4. Rolling factor exposures (optional)
+        rolling_json = None
+        if req.rolling_window is not None:
+            n_months = len(model._align_data()[0])
+            roll_window = min(req.rolling_window, max(12, n_months - 1))
+            rolling = model.rolling_betas(window=roll_window)
+            rolling_json = {}
+            for tick, rdf in rolling.items():
+                rdf_clean = rdf.copy()
+                rdf_clean.index = rdf_clean.index.strftime("%Y-%m-%d")
+                rdf_clean = rdf_clean.where(pd.notnull(rdf_clean), None)
+                rolling_json[tick] = rdf_clean.reset_index().rename(
+                    columns={"date": "date"}
+                ).to_dict(orient="records")
 
         # 5. Convert to JSON-safe dicts (replace NaN with None)
         def clean(df_or_series):

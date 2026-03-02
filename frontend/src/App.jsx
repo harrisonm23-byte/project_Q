@@ -24,7 +24,7 @@ export default function App() {
   const [tickers, setTickers] = useState(DEFAULT_TICKERS);
   const [start, setStart] = useState("2019-01-01");
   const [end, setEnd] = useState("2024-12-31");
-  const [momentum, setMomentum] = useState(true);
+  const [rollingEnabled, setRollingEnabled] = useState(true);
   const [rollingWindow, setRollingWindow] = useState(36);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -50,8 +50,8 @@ export default function App() {
           tickers: tickerList,
           start,
           end,
-          include_momentum: momentum,
-          rolling_window: rollingWindow,
+          include_momentum: true,
+          rolling_window: rollingEnabled ? rollingWindow : null,
         }),
       });
       if (!resp.ok) {
@@ -90,34 +90,42 @@ export default function App() {
         <div className="options-section">
           <span className="options-label">Analysis Options</span>
           <div className="options-grid">
+            <div className="option-card active">
+              <span className="option-icon">F</span>
+              <span className="option-text">
+                <span className="option-title">Factor Analysis</span>
+                <span className="option-desc">Mkt-RF, SMB, HML, Mom</span>
+              </span>
+            </div>
+
             <button
               type="button"
-              className={`option-card ${momentum ? "active" : ""}`}
-              onClick={() => setMomentum(!momentum)}
+              className={`option-card option-card-select ${rollingEnabled ? "active" : ""}`}
+              onClick={() => setRollingEnabled(!rollingEnabled)}
             >
-              <span className="option-icon">M</span>
-              <span className="option-text">
-                <span className="option-title">Momentum Factor</span>
-                <span className="option-desc">Add Carhart MOM to regression</span>
-              </span>
-            </button>
-
-            <div className="option-card active option-card-select">
               <span className="option-icon">R</span>
               <span className="option-text">
                 <span className="option-title">Rolling Window</span>
                 <span className="option-desc">
-                  <select
-                    value={rollingWindow}
-                    onChange={(e) => setRollingWindow(Number(e.target.value))}
-                  >
-                    {WINDOW_OPTIONS.map((w) => (
-                      <option key={w} value={w}>{w} months</option>
-                    ))}
-                  </select>
+                  {rollingEnabled ? (
+                    <select
+                      value={rollingWindow}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        setRollingWindow(Number(e.target.value));
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {WINDOW_OPTIONS.map((w) => (
+                        <option key={w} value={w}>{w} months</option>
+                      ))}
+                    </select>
+                  ) : (
+                    "Time-varying exposures"
+                  )}
                 </span>
               </span>
-            </div>
+            </button>
 
             <div className="option-card disabled">
               <span className="option-icon">P</span>
@@ -189,7 +197,9 @@ export default function App() {
       {data && (
         <div className="results">
           <nav className="tabs">
-            {["summary", "betas", "r_squared", "variance", "rolling"].map((tab) => (
+            {["summary", "betas", "r_squared", "variance",
+              ...(data.rolling_betas ? ["rolling"] : [])
+            ].map((tab) => (
               <button
                 key={tab}
                 className={activeTab === tab ? "active" : ""}
