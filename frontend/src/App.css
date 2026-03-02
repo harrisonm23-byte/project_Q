@@ -256,6 +256,38 @@ header h1 {
   cursor: not-allowed;
 }
 
+/* ── Transposed Summary Table ─────────────────────────────────────────────── */
+
+.summary-transposed .ticker-col {
+  text-align: center;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.summary-transposed td {
+  text-align: center;
+}
+
+.row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text);
+  white-space: nowrap;
+  text-align: left !important;
+}
+
+.row-label-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
 /* ── Error ────────────────────────────────────────────────────────────────── */
 
 .error {

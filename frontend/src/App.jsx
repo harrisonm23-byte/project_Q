@@ -231,49 +231,75 @@ export default function App() {
 
 function SummaryTable({ data }) {
   const { summary, tickers, factor_names } = data;
+
+  const rows = [
+    ...factor_names.map((f, i) => ({
+      key: f,
+      label: `Beta ${f}`,
+      factorKey: f,
+      color: COLORS[i % COLORS.length],
+      getValue: (t) => fmt(summary[t]?.[`beta_${f}`]),
+      getClass: () => "",
+    })),
+    {
+      key: "alpha",
+      label: "Alpha (ann.)",
+      factorKey: "Alpha",
+      color: null,
+      getValue: (t) => fmt(summary[t]?.alpha_annualized),
+      getClass: (t) =>
+        summary[t]?.alpha_annualized >= 0 ? "pos" : "neg",
+    },
+    {
+      key: "r2",
+      label: "R²",
+      factorKey: "R_squared",
+      color: null,
+      getValue: (t) => fmt(summary[t]?.R_squared),
+      getClass: () => "",
+    },
+    {
+      key: "idio",
+      label: "Idio Vol",
+      factorKey: "Idio_Vol",
+      color: null,
+      getValue: (t) => fmt(summary[t]?.idio_vol_annual),
+      getClass: () => "",
+    },
+  ];
+
   return (
     <div className="table-wrap">
-      <table>
+      <table className="summary-transposed">
         <thead>
           <tr>
-            <th>Ticker</th>
-            <th>
-              <FactorInfoPopover factorKey="Alpha">
-                Alpha (ann.)
-              </FactorInfoPopover>
-            </th>
-            {factor_names.map((f) => (
-              <th key={f}>
-                <FactorInfoPopover factorKey={f}>Beta {f}</FactorInfoPopover>
-              </th>
+            <th></th>
+            {tickers.map((t) => (
+              <th key={t} className="ticker-col">{t}</th>
             ))}
-            <th>
-              <FactorInfoPopover factorKey="R_squared">R²</FactorInfoPopover>
-            </th>
-            <th>
-              <FactorInfoPopover factorKey="Idio_Vol">
-                Idio Vol
-              </FactorInfoPopover>
-            </th>
           </tr>
         </thead>
         <tbody>
-          {tickers.map((t) => {
-            const row = summary[t];
-            return (
-              <tr key={t}>
-                <td className="ticker">{t}</td>
-                <td className={row.alpha_annualized >= 0 ? "pos" : "neg"}>
-                  {fmt(row.alpha_annualized)}
+          {rows.map((row) => (
+            <tr key={row.key}>
+              <td className="row-label">
+                {row.color && (
+                  <span
+                    className="row-label-swatch"
+                    style={{ background: row.color }}
+                  />
+                )}
+                <FactorInfoPopover factorKey={row.factorKey}>
+                  {row.label}
+                </FactorInfoPopover>
+              </td>
+              {tickers.map((t) => (
+                <td key={t} className={row.getClass(t)}>
+                  {row.getValue(t)}
                 </td>
-                {factor_names.map((f) => (
-                  <td key={f}>{fmt(row[`beta_${f}`])}</td>
-                ))}
-                <td>{fmt(row.R_squared)}</td>
-                <td>{fmt(row.idio_vol_annual)}</td>
-              </tr>
-            );
-          })}
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
