@@ -77,7 +77,7 @@ header h1 {
 }
 
 .field-tickers {
-  flex: 2 1 250px;
+  width: 100%;
 }
 
 .field-row {
