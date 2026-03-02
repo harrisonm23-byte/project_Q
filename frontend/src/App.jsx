@@ -145,13 +145,12 @@ export default function App() {
               <span className="option-badge">Soon</span>
             </div>
 
-            <div className="option-card disabled">
+            <div className="option-card active">
               <span className="option-icon">C</span>
               <span className="option-text">
                 <span className="option-title">Correlation Heatmap</span>
                 <span className="option-desc">Diversification analysis</span>
               </span>
-              <span className="option-badge">Soon</span>
             </div>
 
             <div className="option-card disabled">
@@ -197,7 +196,7 @@ export default function App() {
       {data && (
         <div className="results">
           <nav className="tabs">
-            {["summary", "betas", "r_squared", "variance",
+            {["summary", "betas", "r_squared", "variance", "correlation",
               ...(data.rolling_betas ? ["rolling"] : [])
             ].map((tab) => (
               <button
@@ -208,8 +207,9 @@ export default function App() {
                 {tab === "summary" && "Summary"}
                 {tab === "betas" && "Factor Loadings"}
                 {tab === "r_squared" && "R-Squared"}
-                {tab === "variance" && "Variance Attribution"}
-                {tab === "rolling" && "Rolling Exposures"}
+                {tab === "variance" && "Variance"}
+                {tab === "correlation" && "Correlation"}
+                {tab === "rolling" && "Rolling"}
               </button>
             ))}
           </nav>
@@ -219,6 +219,7 @@ export default function App() {
             {activeTab === "betas" && <BetasChart data={data} />}
             {activeTab === "r_squared" && <RSquaredChart data={data} />}
             {activeTab === "variance" && <VarianceChart data={data} />}
+            {activeTab === "correlation" && <CorrelationHeatmap data={data} />}
             {activeTab === "rolling" && <RollingChart data={data} />}
           </div>
         </div>
@@ -438,6 +439,111 @@ function VarianceChart({ data }) {
           ))}
         </BarChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* ── Correlation Heatmap ───────────────────────────────────────────────── */
+
+function corrColor(val) {
+  // Diverging color scale: blue (negative) → neutral → red (positive)
+  if (val == null) return "var(--bg)";
+  const clamped = Math.max(-1, Math.min(1, val));
+  if (clamped >= 0) {
+    // 0 → transparent, 1 → strong red
+    const intensity = clamped;
+    return `rgba(239, 68, 68, ${intensity * 0.7})`;
+  } else {
+    // 0 → transparent, -1 → strong blue
+    const intensity = -clamped;
+    return `rgba(99, 102, 241, ${intensity * 0.7})`;
+  }
+}
+
+function CorrelationHeatmap({ data }) {
+  const { correlations, tickers } = data;
+  const [mode, setMode] = useState("total");
+
+  if (!correlations) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        Correlation data not available.
+      </p>
+    );
+  }
+
+  const matrix = correlations[mode] || {};
+  const size = tickers.length;
+
+  return (
+    <div>
+      <div className="heatmap-controls">
+        <button
+          className={`rolling-pill ${mode === "total" ? "active" : ""}`}
+          onClick={() => setMode("total")}
+        >
+          Observed
+        </button>
+        <button
+          className={`rolling-pill ${mode === "factor_implied" ? "active" : ""}`}
+          onClick={() => setMode("factor_implied")}
+        >
+          Factor-Implied
+        </button>
+        <span className="heatmap-hint">
+          {mode === "total"
+            ? "Actual return correlations between stocks"
+            : "Correlations predicted by the factor model alone"}
+        </span>
+      </div>
+
+      <div className="heatmap-wrap">
+        <div
+          className="heatmap-grid"
+          style={{
+            gridTemplateColumns: `60px repeat(${size}, 1fr)`,
+            gridTemplateRows: `32px repeat(${size}, 1fr)`,
+          }}
+        >
+          {/* Corner cell */}
+          <div className="heatmap-corner" />
+
+          {/* Column headers */}
+          {tickers.map((t) => (
+            <div key={`col-${t}`} className="heatmap-col-label">{t}</div>
+          ))}
+
+          {/* Rows */}
+          {tickers.map((rowTicker) => (
+            <React.Fragment key={`row-${rowTicker}`}>
+              <div className="heatmap-row-label">{rowTicker}</div>
+              {tickers.map((colTicker) => {
+                const val = matrix[rowTicker]?.[colTicker];
+                const isDiag = rowTicker === colTicker;
+                return (
+                  <div
+                    key={`${rowTicker}-${colTicker}`}
+                    className={`heatmap-cell ${isDiag ? "heatmap-diag" : ""}`}
+                    style={{ background: corrColor(val) }}
+                    title={`${rowTicker} / ${colTicker}: ${val != null ? val.toFixed(3) : "N/A"}`}
+                  >
+                    {val != null ? val.toFixed(2) : "—"}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Color legend */}
+        <div className="heatmap-legend">
+          <span className="heatmap-legend-label">-1.0</span>
+          <div className="heatmap-legend-bar" />
+          <span className="heatmap-legend-label">0</span>
+          <div className="heatmap-legend-bar heatmap-legend-bar-pos" />
+          <span className="heatmap-legend-label">+1.0</span>
+        </div>
+      </div>
     </div>
   );
 }

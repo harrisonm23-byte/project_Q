@@ -81,3 +81,40 @@ def variance_attribution(model: FactorModel) -> pd.DataFrame:
         rows.append(row)
 
     return pd.DataFrame(rows, index=betas.index)
+
+
+def correlation_matrix(model: FactorModel) -> dict[str, pd.DataFrame]:
+    """Compute total and factor-implied correlation matrices.
+
+    Returns
+    -------
+    dict with keys:
+        "total" : Correlation of actual excess returns (what you observe).
+        "factor_implied" : Correlation implied by the factor model only
+            (B * Sigma_F * B' normalized to correlation). Shows what the
+            model *predicts* correlations should be.
+    """
+    ret, fac = model._align_data()
+    rf = fac[model.rf_column]
+    excess = ret.sub(rf, axis=0).dropna()
+
+    # Total (observed) correlation
+    total_corr = excess.corr()
+
+    # Factor-implied correlation from systematic covariance
+    sys_cov, idio_cov = model.covariance_decomposition()
+    total_cov = sys_cov + idio_cov
+    std = np.sqrt(np.diag(total_cov))
+    std_outer = np.outer(std, std)
+    # Avoid division by zero
+    std_outer[std_outer == 0] = 1.0
+    implied_corr = pd.DataFrame(
+        sys_cov.values / std_outer,
+        index=sys_cov.index,
+        columns=sys_cov.columns,
+    )
+    # Diagonal should be the systematic fraction, but for a correlation
+    # heatmap it's more intuitive to show 1.0 on the diagonal
+    np.fill_diagonal(implied_corr.values, 1.0)
+
+    return {"total": total_corr, "factor_implied": implied_corr}

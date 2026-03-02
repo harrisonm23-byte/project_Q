@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from project_q.data import fetch_fama_french_factors, fetch_stock_returns
 from project_q.factors import FactorModel
-from project_q.factors.analysis import variance_attribution
+from project_q.factors.analysis import correlation_matrix, variance_attribution
 
 app = FastAPI(title="Project Q API", version="0.1.0")
 
@@ -46,6 +46,7 @@ class AnalyzeResponse(BaseModel):
     r_squared: dict[str, dict[str, float]]
     variance_attr: dict[str, dict[str, float]]
     rolling_betas: dict[str, list[dict]] | None = None
+    correlations: dict[str, dict[str, dict[str, float]]] | None = None
     factor_names: list[str]
     tickers: list[str]
 
@@ -109,6 +110,13 @@ def analyze(req: AnalyzeRequest):
         def clean(df_or_series):
             return df_or_series.where(pd.notnull(df_or_series), None)
 
+        # 6. Correlation matrices (total + factor-implied)
+        corr_matrices = correlation_matrix(model)
+        corr_json = {
+            key: clean(df).to_dict(orient="index")
+            for key, df in corr_matrices.items()
+        }
+
         return AnalyzeResponse(
             summary=clean(summary_df).to_dict(orient="index"),
             alphas=clean(alphas).to_dict(),
@@ -116,6 +124,7 @@ def analyze(req: AnalyzeRequest):
             r_squared=clean(r2).to_dict(orient="index"),
             variance_attr=clean(var_attr).to_dict(orient="index"),
             rolling_betas=rolling_json,
+            correlations=corr_json,
             factor_names=model.factor_names,
             tickers=list(model.results.keys()),
         )
