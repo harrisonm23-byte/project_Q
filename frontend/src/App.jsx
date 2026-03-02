@@ -231,6 +231,7 @@ export default function App() {
 
 function SummaryTable({ data }) {
   const { summary, tickers, factor_names } = data;
+  const [sortKey, setSortKey] = useState(null);
 
   const rows = [
     ...factor_names.map((f, i) => ({
@@ -238,6 +239,7 @@ function SummaryTable({ data }) {
       label: `Beta ${f}`,
       factorKey: f,
       color: COLORS[i % COLORS.length],
+      getRaw: (t) => summary[t]?.[`beta_${f}`] ?? 0,
       getValue: (t) => fmt(summary[t]?.[`beta_${f}`]),
       getClass: () => "",
     })),
@@ -246,15 +248,17 @@ function SummaryTable({ data }) {
       label: "Alpha (ann.)",
       factorKey: "Alpha",
       color: null,
+      getRaw: (t) => summary[t]?.alpha_annualized ?? 0,
       getValue: (t) => fmt(summary[t]?.alpha_annualized),
       getClass: (t) =>
         summary[t]?.alpha_annualized >= 0 ? "pos" : "neg",
     },
     {
       key: "r2",
-      label: "R²",
+      label: "R\u00B2",
       factorKey: "R_squared",
       color: null,
+      getRaw: (t) => summary[t]?.R_squared ?? 0,
       getValue: (t) => fmt(summary[t]?.R_squared),
       getClass: () => "",
     },
@@ -263,10 +267,20 @@ function SummaryTable({ data }) {
       label: "Idio Vol",
       factorKey: "Idio_Vol",
       color: null,
+      getRaw: (t) => summary[t]?.idio_vol_annual ?? 0,
       getValue: (t) => fmt(summary[t]?.idio_vol_annual),
       getClass: () => "",
     },
   ];
+
+  const activeRow = rows.find((r) => r.key === sortKey);
+  const sortedTickers = activeRow
+    ? [...tickers].sort((a, b) => activeRow.getRaw(b) - activeRow.getRaw(a))
+    : tickers;
+
+  function handleSort(key) {
+    setSortKey(sortKey === key ? null : key);
+  }
 
   return (
     <div className="table-wrap">
@@ -274,14 +288,14 @@ function SummaryTable({ data }) {
         <thead>
           <tr>
             <th></th>
-            {tickers.map((t) => (
+            {sortedTickers.map((t) => (
               <th key={t} className="ticker-col">{t}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.key}>
+            <tr key={row.key} className={sortKey === row.key ? "sort-active-row" : ""}>
               <td className="row-label">
                 {row.color && (
                   <span
@@ -292,8 +306,16 @@ function SummaryTable({ data }) {
                 <FactorInfoPopover factorKey={row.factorKey}>
                   {row.label}
                 </FactorInfoPopover>
+                <button
+                  type="button"
+                  className={`sort-btn ${sortKey === row.key ? "sort-btn-active" : ""}`}
+                  onClick={() => handleSort(row.key)}
+                  title={`Sort tickers by ${row.label}`}
+                >
+                  &lt;&gt;
+                </button>
               </td>
-              {tickers.map((t) => (
+              {sortedTickers.map((t) => (
                 <td key={t} className={row.getClass(t)}>
                   {row.getValue(t)}
                 </td>

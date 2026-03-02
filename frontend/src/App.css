@@ -288,6 +288,41 @@ header h1 {
   flex-shrink: 0;
 }
 
+.sort-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 26px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  font-family: monospace;
+  line-height: 1;
+}
+
+.sort-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sort-btn-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.sort-active-row td {
+  background: rgba(99, 102, 241, 0.08);
+}
+
 /* ── Error ────────────────────────────────────────────────────────────────── */
 
 .error {
