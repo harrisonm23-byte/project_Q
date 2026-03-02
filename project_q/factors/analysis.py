@@ -115,6 +115,8 @@ def correlation_matrix(model: FactorModel) -> dict[str, pd.DataFrame]:
     )
     # Diagonal should be the systematic fraction, but for a correlation
     # heatmap it's more intuitive to show 1.0 on the diagonal
-    np.fill_diagonal(implied_corr.values, 1.0)
+    diag_vals = implied_corr.values.copy()
+    np.fill_diagonal(diag_vals, 1.0)
+    implied_corr = pd.DataFrame(diag_vals, index=implied_corr.index, columns=implied_corr.columns)
 
     return {"total": total_corr, "factor_implied": implied_corr}
