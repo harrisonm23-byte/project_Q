@@ -492,15 +492,12 @@ function VarianceChart({ data }) {
 /* ── Correlation Heatmap ───────────────────────────────────────────────── */
 
 function corrColor(val) {
-  // Diverging color scale: blue (negative) → neutral → red (positive)
   if (val == null) return "var(--bg)";
   const clamped = Math.max(-1, Math.min(1, val));
   if (clamped >= 0) {
-    // 0 → transparent, 1 → strong red
     const intensity = clamped;
-    return `rgba(239, 68, 68, ${intensity * 0.7})`;
+    return `rgba(16, 185, 129, ${intensity * 0.7})`;
   } else {
-    // 0 → transparent, -1 → strong blue
     const intensity = -clamped;
     return `rgba(99, 102, 241, ${intensity * 0.7})`;
   }
@@ -547,19 +544,16 @@ function CorrelationHeatmap({ data }) {
         <div
           className="heatmap-grid"
           style={{
-            gridTemplateColumns: `60px repeat(${size}, 1fr)`,
-            gridTemplateRows: `32px repeat(${size}, 1fr)`,
+            gridTemplateColumns: `60px repeat(${size}, 1fr) 60px`,
+            gridTemplateRows: `32px repeat(${size}, 1fr) 32px`,
           }}
         >
-          {/* Corner cell */}
+          <div className="heatmap-corner" />
+          {tickers.map((t) => (
+            <div key={`col-top-${t}`} className="heatmap-col-label">{t}</div>
+          ))}
           <div className="heatmap-corner" />
 
-          {/* Column headers */}
-          {tickers.map((t) => (
-            <div key={`col-${t}`} className="heatmap-col-label">{t}</div>
-          ))}
-
-          {/* Rows */}
           {tickers.map((rowTicker) => (
             <React.Fragment key={`row-${rowTicker}`}>
               <div className="heatmap-row-label">{rowTicker}</div>
@@ -577,11 +571,17 @@ function CorrelationHeatmap({ data }) {
                   </div>
                 );
               })}
+              <div className="heatmap-row-label heatmap-row-label-right">{rowTicker}</div>
             </React.Fragment>
           ))}
+
+          <div className="heatmap-corner" />
+          {tickers.map((t) => (
+            <div key={`col-bot-${t}`} className="heatmap-col-label heatmap-col-label-bottom">{t}</div>
+          ))}
+          <div className="heatmap-corner" />
         </div>
 
-        {/* Color legend */}
         <div className="heatmap-legend">
           <span className="heatmap-legend-label">-1.0</span>
           <div className="heatmap-legend-bar" />

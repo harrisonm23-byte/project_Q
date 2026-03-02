@@ -1002,8 +1002,20 @@ tr:last-child td {
   background: linear-gradient(to right, rgba(99, 102, 241, 0.7), rgba(99, 102, 241, 0));
 }
 
+.heatmap-row-label-right {
+  justify-content: flex-start;
+  padding-right: 0;
+  padding-left: 0.5rem;
+}
+
+.heatmap-col-label-bottom {
+  align-items: flex-start;
+  padding-top: 0.25rem;
+  padding-bottom: 0;
+}
+
 .heatmap-legend-bar-pos {
-  background: linear-gradient(to right, rgba(239, 68, 68, 0), rgba(239, 68, 68, 0.7));
+  background: linear-gradient(to right, rgba(16, 185, 129, 0), rgba(16, 185, 129, 0.7));
 }
 
 /* ── Recharts overrides ──────────────────────────────────────────────────── */
