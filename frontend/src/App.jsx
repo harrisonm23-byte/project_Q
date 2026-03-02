@@ -297,14 +297,6 @@ function SummaryTable({ data }) {
           {rows.map((row) => (
             <tr key={row.key} className={sortKey === row.key ? "sort-active-row" : ""}>
               <td className="row-label">
-                <button
-                  type="button"
-                  className={`sort-btn ${sortKey === row.key ? "sort-btn-active" : ""}`}
-                  onClick={() => handleSort(row.key)}
-                  title={`Sort tickers by ${row.label}`}
-                >
-                  &lt;&gt;
-                </button>
                 {row.color && (
                   <span
                     className="row-label-swatch"
@@ -314,6 +306,14 @@ function SummaryTable({ data }) {
                 <FactorInfoPopover factorKey={row.factorKey}>
                   {row.label}
                 </FactorInfoPopover>
+                <button
+                  type="button"
+                  className={`sort-btn ${sortKey === row.key ? "sort-btn-active" : ""}`}
+                  onClick={() => handleSort(row.key)}
+                  title={`Sort tickers by ${row.label}`}
+                >
+                  &lt;&gt;
+                </button>
               </td>
               {sortedTickers.map((t) => (
                 <td key={t} className={row.getClass(t)}>

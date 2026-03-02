@@ -301,7 +301,7 @@ header h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-right: 0;
+  margin-left: auto;
   flex-shrink: 0;
   transition: all 0.15s;
   font-family: monospace;
