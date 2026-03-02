@@ -76,34 +76,14 @@ export default function App() {
 
       {/* ── Input Form ─────────────────────────────── */}
       <form className="controls" onSubmit={handleAnalyze}>
-        <div className="controls-inputs">
-          <div className="field field-tickers">
-            <label>Tickers (comma-separated)</label>
-            <input
-              type="text"
-              value={tickers}
-              onChange={(e) => setTickers(e.target.value)}
-              placeholder="AAPL, MSFT, GOOGL"
-            />
-          </div>
-          <div className="field-row">
-            <div className="field">
-              <label>Start date</label>
-              <input
-                type="date"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label>End date</label>
-              <input
-                type="date"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-              />
-            </div>
-          </div>
+        <div className="field field-tickers">
+          <label>Tickers (comma-separated)</label>
+          <input
+            type="text"
+            value={tickers}
+            onChange={(e) => setTickers(e.target.value)}
+            placeholder="AAPL, MSFT, GOOGL"
+          />
         </div>
 
         {/* ── Analysis Options ──────────────────────── */}
@@ -177,9 +157,30 @@ export default function App() {
           </div>
         </div>
 
-        <button type="submit" className="submit-btn" disabled={loading}>
-          {loading ? "Analyzing..." : "Run Analysis"}
-        </button>
+        {/* ── Date Range & Submit ─────────────────────── */}
+        <div className="controls-bottom">
+          <div className="field-row">
+            <div className="field">
+              <label>Start date</label>
+              <input
+                type="date"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>End date</label>
+              <input
+                type="date"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+              />
+            </div>
+          </div>
+          <button type="submit" className="submit-btn" disabled={loading}>
+            {loading ? "Analyzing..." : "Run Analysis"}
+          </button>
+        </div>
       </form>
 
       {error && <div className="error">{error}</div>}

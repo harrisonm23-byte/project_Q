@@ -63,13 +63,6 @@ header h1 {
   margin-bottom: 2rem;
 }
 
-.controls-inputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-end;
-}
-
 .field {
   display: flex;
   flex-direction: column;
@@ -78,6 +71,15 @@ header h1 {
 
 .field-tickers {
   width: 100%;
+}
+
+.controls-bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
 }
 
 .field-row {
@@ -89,6 +91,10 @@ header h1 {
 .field-row .field {
   flex: 1;
   min-width: 0;
+}
+
+.controls-bottom .submit-btn {
+  flex-shrink: 0;
 }
 
 .field label {
