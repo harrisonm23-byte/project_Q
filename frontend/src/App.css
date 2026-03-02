@@ -54,14 +54,20 @@ header h1 {
 
 .controls {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 1rem;
-  align-items: flex-end;
   background: var(--surface);
   padding: 1.25rem;
   border-radius: 10px;
   border: 1px solid var(--border);
   margin-bottom: 2rem;
+}
+
+.controls-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
 }
 
 .field {
@@ -70,8 +76,19 @@ header h1 {
   gap: 0.3rem;
 }
 
-.field:first-child {
+.field-tickers {
   flex: 2 1 250px;
+}
+
+.field-row {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1 1 200px;
+}
+
+.field-row .field {
+  flex: 1;
+  min-width: 0;
 }
 
 .field label {
@@ -89,41 +106,146 @@ header h1 {
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
   font-size: 0.9rem;
+  width: 100%;
 }
 
-.field.checkbox {
-  justify-content: flex-end;
+/* ── Analysis Options ────────────────────────────────────────────────────── */
+
+.options-section {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
 }
 
-.field.checkbox label {
-  font-size: 0.85rem;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text);
+.options-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+
+.option-card {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  text-align: left;
+  color: var(--text);
+  font-family: inherit;
+  font-size: inherit;
 }
 
-button[type="submit"] {
+.option-card:hover:not(.disabled) {
+  border-color: var(--accent);
+}
+
+.option-card.active {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.option-card.disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.option-card.active .option-icon {
+  background: var(--accent);
+  color: white;
+}
+
+.option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.option-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.option-desc {
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.option-card-select select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  width: auto;
+}
+
+.option-badge {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: var(--border);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* ── Submit Button ───────────────────────────────────────────────────────── */
+
+.submit-btn {
   background: var(--accent);
   color: white;
   border: none;
-  padding: 0.55rem 1.5rem;
+  padding: 0.6rem 1.5rem;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
+  width: 100%;
 }
 
-button[type="submit"]:hover:not(:disabled) {
+.submit-btn:hover:not(:disabled) {
   background: var(--accent-hover);
 }
 
-button[type="submit"]:disabled {
+.submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -469,8 +591,16 @@ tr:last-child td {
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  .controls {
+  .controls-inputs {
     flex-direction: column;
+  }
+
+  .field-row {
+    flex: 1 1 auto;
+  }
+
+  .options-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .tabs {

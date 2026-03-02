@@ -36,6 +36,7 @@ class AnalyzeRequest(BaseModel):
     start: str = "2019-01-01"
     end: str = "2024-12-31"
     include_momentum: bool = True
+    rolling_window: int = 36
 
 
 class AnalyzeResponse(BaseModel):
@@ -89,9 +90,9 @@ def analyze(req: AnalyzeRequest):
         r2 = model.get_r_squared()
         var_attr = variance_attribution(model)
 
-        # 4. Rolling factor exposures (36-month window, or shorter if not enough data)
+        # 4. Rolling factor exposures (user-selected window, clamped to available data)
         n_months = len(model._align_data()[0])
-        roll_window = min(36, max(12, n_months - 1))
+        roll_window = min(req.rolling_window, max(12, n_months - 1))
         rolling = model.rolling_betas(window=roll_window)
         rolling_json: dict[str, list[dict]] = {}
         for tick, rdf in rolling.items():

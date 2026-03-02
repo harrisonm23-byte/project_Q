@@ -18,11 +18,14 @@ const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
 const DEFAULT_TICKERS = "AAPL, MSFT, GOOGL, AMZN, JPM";
 
+const WINDOW_OPTIONS = [12, 24, 36, 48, 60];
+
 export default function App() {
   const [tickers, setTickers] = useState(DEFAULT_TICKERS);
   const [start, setStart] = useState("2019-01-01");
   const [end, setEnd] = useState("2024-12-31");
   const [momentum, setMomentum] = useState(true);
+  const [rollingWindow, setRollingWindow] = useState(36);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
@@ -48,6 +51,7 @@ export default function App() {
           start,
           end,
           include_momentum: momentum,
+          rolling_window: rollingWindow,
         }),
       });
       if (!resp.ok) {
@@ -72,42 +76,108 @@ export default function App() {
 
       {/* ── Input Form ─────────────────────────────── */}
       <form className="controls" onSubmit={handleAnalyze}>
-        <div className="field">
-          <label>Tickers (comma-separated)</label>
-          <input
-            type="text"
-            value={tickers}
-            onChange={(e) => setTickers(e.target.value)}
-            placeholder="AAPL, MSFT, GOOGL"
-          />
-        </div>
-        <div className="field">
-          <label>Start date</label>
-          <input
-            type="date"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label>End date</label>
-          <input
-            type="date"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-          />
-        </div>
-        <div className="field checkbox">
-          <label>
+        <div className="controls-inputs">
+          <div className="field field-tickers">
+            <label>Tickers (comma-separated)</label>
             <input
-              type="checkbox"
-              checked={momentum}
-              onChange={(e) => setMomentum(e.target.checked)}
+              type="text"
+              value={tickers}
+              onChange={(e) => setTickers(e.target.value)}
+              placeholder="AAPL, MSFT, GOOGL"
             />
-            Include momentum factor
-          </label>
+          </div>
+          <div className="field-row">
+            <div className="field">
+              <label>Start date</label>
+              <input
+                type="date"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>End date</label>
+              <input
+                type="date"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
-        <button type="submit" disabled={loading}>
+
+        {/* ── Analysis Options ──────────────────────── */}
+        <div className="options-section">
+          <span className="options-label">Analysis Options</span>
+          <div className="options-grid">
+            <button
+              type="button"
+              className={`option-card ${momentum ? "active" : ""}`}
+              onClick={() => setMomentum(!momentum)}
+            >
+              <span className="option-icon">M</span>
+              <span className="option-text">
+                <span className="option-title">Momentum Factor</span>
+                <span className="option-desc">Add Carhart MOM to regression</span>
+              </span>
+            </button>
+
+            <div className="option-card active option-card-select">
+              <span className="option-icon">R</span>
+              <span className="option-text">
+                <span className="option-title">Rolling Window</span>
+                <span className="option-desc">
+                  <select
+                    value={rollingWindow}
+                    onChange={(e) => setRollingWindow(Number(e.target.value))}
+                  >
+                    {WINDOW_OPTIONS.map((w) => (
+                      <option key={w} value={w}>{w} months</option>
+                    ))}
+                  </select>
+                </span>
+              </span>
+            </div>
+
+            <div className="option-card disabled">
+              <span className="option-icon">P</span>
+              <span className="option-text">
+                <span className="option-title">Portfolio Construction</span>
+                <span className="option-desc">Mean-variance optimization</span>
+              </span>
+              <span className="option-badge">Soon</span>
+            </div>
+
+            <div className="option-card disabled">
+              <span className="option-icon">B</span>
+              <span className="option-text">
+                <span className="option-title">Backtesting</span>
+                <span className="option-desc">Historical performance</span>
+              </span>
+              <span className="option-badge">Soon</span>
+            </div>
+
+            <div className="option-card disabled">
+              <span className="option-icon">C</span>
+              <span className="option-text">
+                <span className="option-title">Correlation Heatmap</span>
+                <span className="option-desc">Diversification analysis</span>
+              </span>
+              <span className="option-badge">Soon</span>
+            </div>
+
+            <div className="option-card disabled">
+              <span className="option-icon">S</span>
+              <span className="option-text">
+                <span className="option-title">Stress Testing</span>
+                <span className="option-desc">Factor shock scenarios</span>
+              </span>
+              <span className="option-badge">Soon</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" className="submit-btn" disabled={loading}>
           {loading ? "Analyzing..." : "Run Analysis"}
         </button>
       </form>
