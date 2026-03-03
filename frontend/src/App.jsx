@@ -4,6 +4,8 @@ import {
   Bar,
   LineChart,
   Line,
+  ScatterChart,
+  Scatter,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -11,6 +13,7 @@ import {
   Legend,
   ResponsiveContainer,
   Cell,
+  ReferenceDot,
 } from "recharts";
 import { FactorInfoPopover } from "./FactorInfo";
 import { FactorHedgePanel, SummaryHedgePanel } from "./HedgePanel";
@@ -128,13 +131,12 @@ export default function App() {
               </span>
             </button>
 
-            <div className="option-card disabled">
+            <div className="option-card active">
               <span className="option-icon">P</span>
               <span className="option-text">
                 <span className="option-title">Portfolio Construction</span>
                 <span className="option-desc">Mean-variance optimization</span>
               </span>
-              <span className="option-badge">Soon</span>
             </div>
 
             <div className="option-card disabled">
@@ -198,6 +200,7 @@ export default function App() {
         <div className="results">
           <nav className="tabs">
             {["summary", "betas", "r_squared", "variance", "correlation",
+              ...(data.portfolio ? ["portfolio"] : []),
               ...(data.rolling_betas ? ["rolling"] : [])
             ].map((tab) => (
               <button
@@ -210,6 +213,7 @@ export default function App() {
                 {tab === "r_squared" && "R-Squared"}
                 {tab === "variance" && "Variance"}
                 {tab === "correlation" && "Correlation"}
+                {tab === "portfolio" && "Portfolio"}
                 {tab === "rolling" && "Rolling"}
               </button>
             ))}
@@ -221,6 +225,7 @@ export default function App() {
             {activeTab === "r_squared" && <RSquaredChart data={data} />}
             {activeTab === "variance" && <VarianceChart data={data} />}
             {activeTab === "correlation" && <CorrelationHeatmap data={data} />}
+            {activeTab === "portfolio" && <PortfolioTab data={data} />}
             {activeTab === "rolling" && <RollingChart data={data} />}
           </div>
         </div>
@@ -588,6 +593,255 @@ function CorrelationHeatmap({ data }) {
           <span className="heatmap-legend-label">0</span>
           <div className="heatmap-legend-bar heatmap-legend-bar-pos" />
           <span className="heatmap-legend-label">+1.0</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Portfolio Construction Tab ─────────────────────────────────────────── */
+
+const PORTFOLIO_COLORS = {
+  min_variance: "#10b981",
+  max_sharpe: "#6366f1",
+  equal_weight: "#f59e0b",
+};
+
+const PORTFOLIO_LABELS = {
+  min_variance: "Min Variance",
+  max_sharpe: "Max Sharpe",
+  equal_weight: "Equal Weight",
+};
+
+function PortfolioTab({ data }) {
+  const { portfolio } = data;
+  const [selected, setSelected] = useState("max_sharpe");
+
+  if (!portfolio) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        Portfolio optimization requires at least 2 stocks.
+      </p>
+    );
+  }
+
+  const { efficient_frontier, min_variance, max_sharpe, equal_weight, tickers, expected_returns, rf_annual } = portfolio;
+  const portfolios = { min_variance, max_sharpe, equal_weight };
+  const active = portfolios[selected];
+
+  // Frontier data for scatter chart (vol on X, return on Y)
+  const frontierData = efficient_frontier.map((p) => ({
+    vol: +(p.volatility * 100).toFixed(2),
+    ret: +(p["return"] * 100).toFixed(2),
+  }));
+
+  // Individual asset points
+  const assetData = tickers.map((t) => {
+    const er = expected_returns[t] * 100;
+    // Approximate individual vol from the covariance diagonal — we can get it from the
+    // equal-weight stats or just show expected return for now. We'll use variance_attr
+    // indirectly via the summary. For simplicity, use the full-period vol from summary.
+    const summaryVol = data.summary[t]?.idio_vol_annual;
+    // Actually, total vol is better. Let's compute from R² and idio_vol:
+    // total_vol² = idio_vol² / (1 - R²) → total_vol = idio_vol / sqrt(1 - R²)
+    const r2 = data.r_squared[t]?.R_squared ?? 0;
+    const idioVol = summaryVol ?? 0;
+    const totalVol = r2 < 1 ? idioVol / Math.sqrt(1 - r2) : idioVol;
+    return { vol: +(totalVol * 100).toFixed(2), ret: +er.toFixed(2), label: t };
+  });
+
+  // Weights chart data
+  const weightsData = tickers
+    .map((t) => ({
+      ticker: t,
+      weight: +((active.weights[t] || 0) * 100).toFixed(2),
+    }))
+    .sort((a, b) => b.weight - a.weight);
+
+  return (
+    <div className="portfolio-tab">
+      {/* Portfolio selector pills */}
+      <div className="portfolio-controls">
+        {Object.keys(PORTFOLIO_LABELS).map((key) => (
+          <button
+            key={key}
+            className={`rolling-pill ${selected === key ? "active" : ""}`}
+            style={selected === key ? { background: PORTFOLIO_COLORS[key], borderColor: PORTFOLIO_COLORS[key] } : {}}
+            onClick={() => setSelected(key)}
+          >
+            {PORTFOLIO_LABELS[key]}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats cards */}
+      <div className="portfolio-stats">
+        <div className="portfolio-stat-card">
+          <span className="portfolio-stat-label">Expected Return</span>
+          <span className="portfolio-stat-value pos">
+            {(active["return"] * 100).toFixed(2)}%
+          </span>
+        </div>
+        <div className="portfolio-stat-card">
+          <span className="portfolio-stat-label">Volatility</span>
+          <span className="portfolio-stat-value">
+            {(active.volatility * 100).toFixed(2)}%
+          </span>
+        </div>
+        <div className="portfolio-stat-card">
+          <span className="portfolio-stat-label">Sharpe Ratio</span>
+          <span className="portfolio-stat-value" style={{ color: active.sharpe > 0 ? "var(--green)" : "var(--red)" }}>
+            {active.sharpe.toFixed(3)}
+          </span>
+        </div>
+        <div className="portfolio-stat-card">
+          <span className="portfolio-stat-label">Risk-Free Rate</span>
+          <span className="portfolio-stat-value">
+            {(rf_annual * 100).toFixed(2)}%
+          </span>
+        </div>
+      </div>
+
+      {/* Two-column: Frontier + Weights */}
+      <div className="portfolio-grid">
+        {/* Efficient Frontier */}
+        <div className="portfolio-chart-section">
+          <h3 className="portfolio-chart-title">Efficient Frontier</h3>
+          <ResponsiveContainer width="100%" height={360}>
+            <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="vol"
+                type="number"
+                name="Volatility"
+                unit="%"
+                tick={{ fontSize: 11 }}
+                label={{ value: "Volatility (%)", position: "bottom", offset: 5, style: { fontSize: 11, fill: "var(--muted)" } }}
+              />
+              <YAxis
+                dataKey="ret"
+                type="number"
+                name="Return"
+                unit="%"
+                tick={{ fontSize: 11 }}
+                label={{ value: "Return (%)", angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 11, fill: "var(--muted)" } }}
+              />
+              <Tooltip
+                formatter={(val, name) => [`${val}%`, name]}
+                labelFormatter={() => ""}
+              />
+              {/* Frontier curve */}
+              <Scatter
+                data={frontierData}
+                fill="var(--accent)"
+                fillOpacity={0.4}
+                r={3}
+                name="Frontier"
+                line={{ stroke: "var(--accent)", strokeWidth: 2 }}
+                lineType="fitting"
+              />
+              {/* Individual assets */}
+              <Scatter
+                data={assetData}
+                fill="var(--muted)"
+                r={5}
+                name="Assets"
+                shape="diamond"
+              />
+              {/* Key portfolio markers */}
+              <ReferenceDot
+                x={+(min_variance.volatility * 100).toFixed(2)}
+                y={+(min_variance["return"] * 100).toFixed(2)}
+                r={7}
+                fill={PORTFOLIO_COLORS.min_variance}
+                stroke="white"
+                strokeWidth={2}
+              />
+              <ReferenceDot
+                x={+(max_sharpe.volatility * 100).toFixed(2)}
+                y={+(max_sharpe["return"] * 100).toFixed(2)}
+                r={7}
+                fill={PORTFOLIO_COLORS.max_sharpe}
+                stroke="white"
+                strokeWidth={2}
+              />
+              <ReferenceDot
+                x={+(equal_weight.volatility * 100).toFixed(2)}
+                y={+(equal_weight["return"] * 100).toFixed(2)}
+                r={7}
+                fill={PORTFOLIO_COLORS.equal_weight}
+                stroke="white"
+                strokeWidth={2}
+              />
+            </ScatterChart>
+          </ResponsiveContainer>
+          {/* Chart legend */}
+          <div className="portfolio-frontier-legend">
+            {Object.entries(PORTFOLIO_LABELS).map(([key, label]) => (
+              <span key={key} className="portfolio-frontier-legend-item">
+                <span className="portfolio-frontier-dot" style={{ background: PORTFOLIO_COLORS[key] }} />
+                {label}
+              </span>
+            ))}
+            <span className="portfolio-frontier-legend-item">
+              <span className="portfolio-frontier-dot" style={{ background: "var(--muted)", clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }} />
+              Individual Assets
+            </span>
+          </div>
+        </div>
+
+        {/* Weights */}
+        <div className="portfolio-chart-section">
+          <h3 className="portfolio-chart-title">
+            {PORTFOLIO_LABELS[selected]} Weights
+          </h3>
+          <ResponsiveContainer width="100%" height={360}>
+            <BarChart data={weightsData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" tickFormatter={(v) => `${v}%`} domain={[0, "auto"]} />
+              <YAxis dataKey="ticker" type="category" width={55} tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(v) => `${v.toFixed(2)}%`} />
+              <Bar dataKey="weight" name="Weight" radius={[0, 4, 4, 0]}>
+                {weightsData.map((_, i) => (
+                  <Cell key={i} fill={PORTFOLIO_COLORS[selected]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+
+          {/* Comparison table */}
+          <div className="portfolio-compare">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  {Object.entries(PORTFOLIO_LABELS).map(([key, label]) => (
+                    <th key={key} style={{ color: PORTFOLIO_COLORS[key] }}>{label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="row-label">Return</td>
+                  {Object.keys(PORTFOLIO_LABELS).map((key) => (
+                    <td key={key}>{(portfolios[key]["return"] * 100).toFixed(2)}%</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="row-label">Volatility</td>
+                  {Object.keys(PORTFOLIO_LABELS).map((key) => (
+                    <td key={key}>{(portfolios[key].volatility * 100).toFixed(2)}%</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="row-label">Sharpe</td>
+                  {Object.keys(PORTFOLIO_LABELS).map((key) => (
+                    <td key={key}>{portfolios[key].sharpe.toFixed(3)}</td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

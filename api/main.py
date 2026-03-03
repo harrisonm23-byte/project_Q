@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from project_q.data import fetch_fama_french_factors, fetch_stock_returns
 from project_q.factors import FactorModel
 from project_q.factors.analysis import correlation_matrix, variance_attribution
+from project_q.factors.portfolio import portfolio_optimize
 
 app = FastAPI(title="Project Q API", version="0.1.0")
 
@@ -47,6 +48,7 @@ class AnalyzeResponse(BaseModel):
     variance_attr: dict[str, dict[str, float]]
     rolling_betas: dict[str, list[dict]] | None = None
     correlations: dict[str, dict[str, dict[str, float]]] | None = None
+    portfolio: dict | None = None
     factor_names: list[str]
     tickers: list[str]
 
@@ -117,6 +119,11 @@ def analyze(req: AnalyzeRequest):
             for key, df in corr_matrices.items()
         }
 
+        # 7. Portfolio optimization (needs >= 2 assets)
+        portfolio_json = None
+        if len(model.results) >= 2:
+            portfolio_json = portfolio_optimize(model)
+
         return AnalyzeResponse(
             summary=clean(summary_df).to_dict(orient="index"),
             alphas=clean(alphas).to_dict(),
@@ -125,6 +132,7 @@ def analyze(req: AnalyzeRequest):
             variance_attr=clean(var_attr).to_dict(orient="index"),
             rolling_betas=rolling_json,
             correlations=corr_json,
+            portfolio=portfolio_json,
             factor_names=model.factor_names,
             tickers=list(model.results.keys()),
         )
