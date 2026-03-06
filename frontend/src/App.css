@@ -987,6 +987,71 @@ tr:last-child td {
   }
 }
 
+/* ── Backtest Tab ──────────────────────────────────────────────────────── */
+
+.backtest-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.backtest-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.backtest-metric-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-top: 3px solid;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.backtest-metric-card-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.75rem 0.25rem;
+}
+
+.backtest-metric-card-body {
+  padding: 0.25rem 0.75rem 0.6rem;
+}
+
+.backtest-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2rem 0;
+  font-size: 0.78rem;
+}
+
+.backtest-metric-label {
+  color: var(--muted);
+}
+
+.backtest-metric-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.backtest-chart-section {
+  margin-bottom: 1.25rem;
+}
+
+.backtest-disclaimer {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
 /* ── Rolling Exposures Controls ──────────────────────────────────────────── */
 
 .rolling-controls {

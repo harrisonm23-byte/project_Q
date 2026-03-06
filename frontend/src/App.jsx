@@ -14,6 +14,9 @@ import {
   ResponsiveContainer,
   Cell,
   ReferenceDot,
+  Area,
+  AreaChart,
+  ComposedChart,
 } from "recharts";
 import { FactorInfoPopover } from "./FactorInfo";
 import { FactorHedgePanel, SummaryHedgePanel } from "./HedgePanel";
@@ -139,13 +142,12 @@ export default function App() {
               </span>
             </div>
 
-            <div className="option-card disabled">
+            <div className="option-card active">
               <span className="option-icon">B</span>
               <span className="option-text">
                 <span className="option-title">Backtesting</span>
                 <span className="option-desc">Historical performance</span>
               </span>
-              <span className="option-badge">Soon</span>
             </div>
 
             <div className="option-card active">
@@ -201,6 +203,7 @@ export default function App() {
           <nav className="tabs">
             {["summary", "betas", "r_squared", "variance", "correlation",
               ...(data.portfolio ? ["portfolio"] : []),
+              ...(data.backtest ? ["backtest"] : []),
               ...(data.rolling_betas ? ["rolling"] : [])
             ].map((tab) => (
               <button
@@ -214,6 +217,7 @@ export default function App() {
                 {tab === "variance" && "Variance"}
                 {tab === "correlation" && "Correlation"}
                 {tab === "portfolio" && "Portfolio"}
+                {tab === "backtest" && "Backtest"}
                 {tab === "rolling" && "Rolling"}
               </button>
             ))}
@@ -226,6 +230,7 @@ export default function App() {
             {activeTab === "variance" && <VarianceChart data={data} />}
             {activeTab === "correlation" && <CorrelationHeatmap data={data} />}
             {activeTab === "portfolio" && <PortfolioTab data={data} />}
+            {activeTab === "backtest" && <BacktestTab data={data} />}
             {activeTab === "rolling" && <RollingChart data={data} />}
           </div>
         </div>
@@ -844,6 +849,203 @@ function PortfolioTab({ data }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Backtest Tab ──────────────────────────────────────────────────────── */
+
+const STRATEGY_COLORS = {
+  max_sharpe: "#6366f1",
+  min_variance: "#10b981",
+  equal_weight: "#f59e0b",
+};
+
+const STRATEGY_LABELS = {
+  max_sharpe: "Max Sharpe",
+  min_variance: "Min Variance",
+  equal_weight: "Equal Weight",
+};
+
+const METRIC_LABELS = {
+  total_return: "Total Return",
+  cagr: "CAGR",
+  volatility: "Volatility",
+  sharpe: "Sharpe Ratio",
+  max_drawdown: "Max Drawdown",
+  sortino: "Sortino Ratio",
+};
+
+function BacktestTab({ data }) {
+  const { backtest } = data;
+  const [visibleStrategies, setVisibleStrategies] = useState(
+    () => new Set(Object.keys(STRATEGY_LABELS))
+  );
+
+  if (!backtest) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        Backtesting requires at least 2 stocks.
+      </p>
+    );
+  }
+
+  const { dates, cumulative, drawdown, metrics } = backtest;
+  const strategyKeys = Object.keys(STRATEGY_LABELS);
+
+  function toggleStrategy(key) {
+    setVisibleStrategies((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        if (next.size > 1) next.delete(key); // keep at least one
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  // Build chart data: one row per date with columns for each strategy
+  const cumulData = dates.map((d, i) => {
+    const row = { date: d.slice(0, 7) };
+    strategyKeys.forEach((s) => {
+      row[s] = cumulative[s][i];
+    });
+    return row;
+  });
+
+  const ddData = dates.map((d, i) => {
+    const row = { date: d.slice(0, 7) };
+    strategyKeys.forEach((s) => {
+      row[s] = +(drawdown[s][i] * 100).toFixed(2);
+    });
+    return row;
+  });
+
+  function fmtMetric(key, val) {
+    if (["total_return", "cagr", "volatility", "max_drawdown"].includes(key)) {
+      return `${(val * 100).toFixed(2)}%`;
+    }
+    return val.toFixed(3);
+  }
+
+  return (
+    <div className="backtest-tab">
+      {/* Strategy toggles */}
+      <div className="backtest-controls">
+        {strategyKeys.map((key) => (
+          <button
+            key={key}
+            className={`rolling-pill ${visibleStrategies.has(key) ? "active" : ""}`}
+            style={visibleStrategies.has(key) ? { background: STRATEGY_COLORS[key], borderColor: STRATEGY_COLORS[key] } : {}}
+            onClick={() => toggleStrategy(key)}
+          >
+            {STRATEGY_LABELS[key]}
+          </button>
+        ))}
+      </div>
+
+      {/* Performance metrics cards */}
+      <div className="backtest-metrics-grid">
+        {strategyKeys.filter((s) => visibleStrategies.has(s)).map((s) => (
+          <div key={s} className="backtest-metric-card" style={{ borderTopColor: STRATEGY_COLORS[s] }}>
+            <div className="backtest-metric-card-title" style={{ color: STRATEGY_COLORS[s] }}>
+              {STRATEGY_LABELS[s]}
+            </div>
+            <div className="backtest-metric-card-body">
+              {Object.entries(METRIC_LABELS).map(([mk, ml]) => (
+                <div key={mk} className="backtest-metric-row">
+                  <span className="backtest-metric-label">{ml}</span>
+                  <span className={`backtest-metric-value ${mk === "max_drawdown" ? "neg" : mk === "cagr" || mk === "total_return" ? (metrics[s][mk] >= 0 ? "pos" : "neg") : ""}`}>
+                    {fmtMetric(mk, metrics[s][mk])}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Cumulative returns chart */}
+      <div className="backtest-chart-section">
+        <h3 className="portfolio-chart-title">Growth of $1</h3>
+        <ResponsiveContainer width="100%" height={340}>
+          <LineChart data={cumulData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              tickFormatter={(v) => `$${v.toFixed(2)}`}
+              domain={["auto", "auto"]}
+            />
+            <Tooltip
+              formatter={(v, name) => [`$${Number(v).toFixed(4)}`, STRATEGY_LABELS[name] || name]}
+              labelFormatter={(label) => `Date: ${label}`}
+            />
+            {strategyKeys
+              .filter((s) => visibleStrategies.has(s))
+              .map((s) => (
+                <Line
+                  key={s}
+                  type="monotone"
+                  dataKey={s}
+                  stroke={STRATEGY_COLORS[s]}
+                  strokeWidth={2}
+                  dot={false}
+                  name={s}
+                />
+              ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Drawdown chart */}
+      <div className="backtest-chart-section">
+        <h3 className="portfolio-chart-title">Drawdown</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={ddData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              tickFormatter={(v) => `${v}%`}
+              domain={["auto", 0]}
+            />
+            <Tooltip
+              formatter={(v, name) => [`${Number(v).toFixed(2)}%`, STRATEGY_LABELS[name] || name]}
+              labelFormatter={(label) => `Date: ${label}`}
+            />
+            {strategyKeys
+              .filter((s) => visibleStrategies.has(s))
+              .map((s) => (
+                <Area
+                  key={s}
+                  type="monotone"
+                  dataKey={s}
+                  stroke={STRATEGY_COLORS[s]}
+                  fill={STRATEGY_COLORS[s]}
+                  fillOpacity={0.15}
+                  strokeWidth={1.5}
+                  dot={false}
+                  name={s}
+                />
+              ))}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <p className="backtest-disclaimer">
+        Fixed-weight backtest with monthly rebalancing. Weights optimized on the full analysis period.
+        Past performance does not predict future results.
+      </p>
     </div>
   );
 }
