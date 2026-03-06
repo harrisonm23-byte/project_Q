@@ -18,6 +18,7 @@ from project_q.factors import FactorModel
 from project_q.factors.analysis import correlation_matrix, variance_attribution
 from project_q.factors.backtest import backtest_portfolios
 from project_q.factors.portfolio import portfolio_optimize
+from project_q.factors.stress import stress_test
 
 app = FastAPI(title="Project Q API", version="0.1.0")
 
@@ -51,6 +52,7 @@ class AnalyzeResponse(BaseModel):
     correlations: dict[str, dict[str, dict[str, float]]] | None = None
     portfolio: dict | None = None
     backtest: dict | None = None
+    stress: dict | None = None
     factor_names: list[str]
     tickers: list[str]
 
@@ -129,6 +131,9 @@ def analyze(req: AnalyzeRequest):
             # 8. Portfolio backtesting
             backtest_json = backtest_portfolios(model)
 
+        # 9. Stress testing
+        stress_json = stress_test(model)
+
         return AnalyzeResponse(
             summary=clean(summary_df).to_dict(orient="index"),
             alphas=clean(alphas).to_dict(),
@@ -139,6 +144,7 @@ def analyze(req: AnalyzeRequest):
             correlations=corr_json,
             portfolio=portfolio_json,
             backtest=backtest_json,
+            stress=stress_json,
             factor_names=model.factor_names,
             tickers=list(model.results.keys()),
         )

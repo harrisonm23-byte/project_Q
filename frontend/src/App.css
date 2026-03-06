@@ -1052,6 +1052,108 @@ tr:last-child td {
   font-style: italic;
 }
 
+/* ── Stress Test Tab ─────────────────────────────────────────────────────── */
+
+.stress-scenarios {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.stress-scenario-btn {
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stress-scenario-btn:hover {
+  border-color: var(--accent);
+}
+
+.stress-description {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.stress-section {
+  margin-bottom: 1.25rem;
+}
+
+.stress-shocks-table {
+  width: 100%;
+  max-width: 400px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+}
+
+.stress-shocks-table th {
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 2px solid var(--border);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.stress-shocks-table td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.stress-shocks-table tr.zero td {
+  color: var(--muted);
+}
+
+.stress-portfolio-cards {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.stress-port-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  text-align: center;
+  min-width: 140px;
+}
+
+.stress-port-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.stress-port-impact {
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stress-port-impact.pos {
+  color: #10b981;
+}
+
+.stress-port-impact.neg {
+  color: #ef4444;
+}
+
 /* ── Rolling Exposures Controls ──────────────────────────────────────────── */
 
 .rolling-controls {

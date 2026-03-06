@@ -158,13 +158,12 @@ export default function App() {
               </span>
             </div>
 
-            <div className="option-card disabled">
+            <div className="option-card active">
               <span className="option-icon">S</span>
               <span className="option-text">
                 <span className="option-title">Stress Testing</span>
                 <span className="option-desc">Factor shock scenarios</span>
               </span>
-              <span className="option-badge">Soon</span>
             </div>
           </div>
         </div>
@@ -204,6 +203,7 @@ export default function App() {
             {["summary", "betas", "r_squared", "variance", "correlation",
               ...(data.portfolio ? ["portfolio"] : []),
               ...(data.backtest ? ["backtest"] : []),
+              ...(data.stress ? ["stress"] : []),
               ...(data.rolling_betas ? ["rolling"] : [])
             ].map((tab) => (
               <button
@@ -218,6 +218,7 @@ export default function App() {
                 {tab === "correlation" && "Correlation"}
                 {tab === "portfolio" && "Portfolio"}
                 {tab === "backtest" && "Backtest"}
+                {tab === "stress" && "Stress Test"}
                 {tab === "rolling" && "Rolling"}
               </button>
             ))}
@@ -231,6 +232,7 @@ export default function App() {
             {activeTab === "correlation" && <CorrelationHeatmap data={data} />}
             {activeTab === "portfolio" && <PortfolioTab data={data} />}
             {activeTab === "backtest" && <BacktestTab data={data} />}
+            {activeTab === "stress" && <StressTestTab data={data} />}
             {activeTab === "rolling" && <RollingChart data={data} />}
           </div>
         </div>
@@ -1045,6 +1047,152 @@ function BacktestTab({ data }) {
       <p className="backtest-disclaimer">
         Fixed-weight backtest with monthly rebalancing. Weights optimized on the full analysis period.
         Past performance does not predict future results.
+      </p>
+    </div>
+  );
+}
+
+/* ── Stress Test Tab ───────────────────────────────────────────────────── */
+
+const PORTFOLIO_LABELS = {
+  max_sharpe: "Max Sharpe",
+  min_variance: "Min Variance",
+  equal_weight: "Equal Weight",
+};
+
+const SCENARIO_COLORS = [
+  "#ef4444", "#f59e0b", "#6366f1", "#10b981", "#3b82f6",
+];
+
+function StressTestTab({ data }) {
+  const { stress } = data;
+  const [activeScenario, setActiveScenario] = useState(0);
+
+  if (!stress || !stress.scenarios || stress.scenarios.length === 0) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        No stress test scenarios available.
+      </p>
+    );
+  }
+
+  const { scenarios, factor_names } = stress;
+  const scene = scenarios[activeScenario];
+  const hasPortfolios = Object.keys(scene.portfolio_impacts || {}).length > 0;
+
+  // Sort stocks by impact for the bar chart
+  const stockData = Object.entries(scene.stock_impacts)
+    .map(([ticker, impact]) => ({ ticker, impact: +(impact * 100).toFixed(2) }))
+    .sort((a, b) => a.impact - b.impact);
+
+  // Factor shocks for display
+  const shockData = factor_names.map((f) => ({
+    factor: f,
+    sigma: scene.shocks[f] || 0,
+    abs: scene.abs_shocks[f] || 0,
+  }));
+
+  // Portfolio impacts
+  const portData = hasPortfolios
+    ? Object.entries(scene.portfolio_impacts).map(([name, impact]) => ({
+        name: PORTFOLIO_LABELS[name] || name,
+        impact: +(impact * 100).toFixed(2),
+        key: name,
+      }))
+    : [];
+
+  return (
+    <div className="stress-tab">
+      {/* Scenario selector */}
+      <div className="stress-scenarios">
+        {scenarios.map((s, i) => (
+          <button
+            key={s.id}
+            className={`stress-scenario-btn ${i === activeScenario ? "active" : ""}`}
+            style={i === activeScenario ? { borderColor: SCENARIO_COLORS[i % SCENARIO_COLORS.length], background: SCENARIO_COLORS[i % SCENARIO_COLORS.length] + "18" } : {}}
+            onClick={() => setActiveScenario(i)}
+          >
+            <span className="stress-scenario-label">{s.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <p className="stress-description">{scene.description}</p>
+
+      {/* Factor shocks table */}
+      <div className="stress-section">
+        <h3 className="portfolio-chart-title">Factor Shocks Applied</h3>
+        <table className="stress-shocks-table">
+          <thead>
+            <tr>
+              <th>Factor</th>
+              <th>Shock (σ)</th>
+              <th>Absolute</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shockData.map((d) => (
+              <tr key={d.factor} className={d.sigma === 0 ? "zero" : ""}>
+                <td>{d.factor}</td>
+                <td className={d.sigma > 0 ? "pos" : d.sigma < 0 ? "neg" : ""}>
+                  {d.sigma > 0 ? "+" : ""}{d.sigma.toFixed(1)}σ
+                </td>
+                <td className={d.abs > 0 ? "pos" : d.abs < 0 ? "neg" : ""}>
+                  {(d.abs * 100).toFixed(2)}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Stock impact waterfall */}
+      <div className="stress-section">
+        <h3 className="portfolio-chart-title">Estimated Stock Impact (monthly)</h3>
+        <ResponsiveContainer width="100%" height={Math.max(220, stockData.length * 36)}>
+          <BarChart data={stockData} layout="vertical" margin={{ left: 50, right: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+            <XAxis
+              type="number"
+              tick={{ fontSize: 11 }}
+              tickFormatter={(v) => `${v}%`}
+            />
+            <YAxis
+              type="category"
+              dataKey="ticker"
+              tick={{ fontSize: 12, fontWeight: 600 }}
+              width={50}
+            />
+            <Tooltip formatter={(v) => [`${Number(v).toFixed(2)}%`, "Impact"]} />
+            <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
+              {stockData.map((d, i) => (
+                <Cell key={i} fill={d.impact >= 0 ? "#10b981" : "#ef4444"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Portfolio-level impacts */}
+      {hasPortfolios && (
+        <div className="stress-section">
+          <h3 className="portfolio-chart-title">Portfolio Impact (monthly)</h3>
+          <div className="stress-portfolio-cards">
+            {portData.map((p) => (
+              <div key={p.key} className="stress-port-card">
+                <div className="stress-port-name">{p.name}</div>
+                <div className={`stress-port-impact ${p.impact >= 0 ? "pos" : "neg"}`}>
+                  {p.impact >= 0 ? "+" : ""}{p.impact.toFixed(2)}%
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="backtest-disclaimer">
+        Impacts estimated using factor betas × scenario shocks. Does not account for
+        non-linear effects, liquidity, or contagion.
       </p>
     </div>
   );
