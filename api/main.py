@@ -20,7 +20,23 @@ from project_q.factors.backtest import backtest_portfolios
 from project_q.factors.portfolio import portfolio_optimize
 from project_q.factors.stress import stress_test
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
 app = FastAPI(title="Project Q API", version="0.1.0")
+
+
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.endswith(".html"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+
+app.add_middleware(NoCacheMiddleware)
 
 # Allow React dev server (Vite) to call the API during development
 app.add_middleware(
