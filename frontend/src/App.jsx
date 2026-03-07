@@ -205,23 +205,28 @@ export default function App() {
               ...(data.backtest ? ["backtest"] : []),
               ...(data.stress ? ["stress"] : []),
               ...(data.rolling_betas ? ["rolling"] : [])
-            ].map((tab) => (
-              <button
-                key={tab}
-                className={activeTab === tab ? "active" : ""}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab === "summary" && "Summary"}
-                {tab === "betas" && "Factor Loadings"}
-                {tab === "r_squared" && "R-Squared"}
-                {tab === "variance" && "Variance"}
-                {tab === "correlation" && "Correlation"}
-                {tab === "portfolio" && "Portfolio"}
-                {tab === "backtest" && "Backtest"}
-                {tab === "stress" && "Stress Test"}
-                {tab === "rolling" && "Rolling"}
-              </button>
-            ))}
+            ].map((tab) => {
+              const tabLabel = {
+                summary: "Summary", betas: "Factor Loadings", r_squared: "R-Squared",
+                variance: "Variance", correlation: "Correlation", portfolio: "Portfolio",
+                backtest: "Backtest", stress: "Stress Test", rolling: "Rolling",
+              }[tab];
+              const tabInfoKey = {
+                r_squared: "R_squared", variance: "Variance_Attribution",
+                correlation: "Correlation", stress: "Stress_Test", rolling: "Rolling_Exposures",
+              }[tab];
+              return (
+                <button
+                  key={tab}
+                  className={activeTab === tab ? "active" : ""}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {tabInfoKey ? (
+                    <FactorInfoPopover factorKey={tabInfoKey}>{tabLabel}</FactorInfoPopover>
+                  ) : tabLabel}
+                </button>
+              );
+            })}
           </nav>
 
           <div className="tab-content">
@@ -667,42 +672,55 @@ function PortfolioTab({ data }) {
 
   return (
     <div className="portfolio-tab">
-      {/* Portfolio selector pills */}
       <div className="portfolio-controls">
-        {Object.keys(PORTFOLIO_LABELS).map((key) => (
-          <button
-            key={key}
-            className={`rolling-pill ${selected === key ? "active" : ""}`}
-            style={selected === key ? { background: PORTFOLIO_COLORS[key], borderColor: PORTFOLIO_COLORS[key] } : {}}
-            onClick={() => setSelected(key)}
-          >
-            {PORTFOLIO_LABELS[key]}
-          </button>
-        ))}
+        {Object.entries(PORTFOLIO_LABELS).map(([key, label]) => {
+          const infoKey = key === "max_sharpe" ? "Max_Sharpe" : key === "min_variance" ? "Min_Variance" : "Equal_Weight";
+          return (
+            <span key={key} className="portfolio-pill-wrap">
+              <button
+                className={`rolling-pill ${selected === key ? "active" : ""}`}
+                style={selected === key ? { background: PORTFOLIO_COLORS[key], borderColor: PORTFOLIO_COLORS[key] } : {}}
+                onClick={() => setSelected(key)}
+              >
+                {label}
+              </button>
+              <FactorInfoPopover factorKey={infoKey}>
+                <span className="pill-info-label">{""}</span>
+              </FactorInfoPopover>
+            </span>
+          );
+        })}
       </div>
 
-      {/* Stats cards */}
       <div className="portfolio-stats">
         <div className="portfolio-stat-card">
-          <span className="portfolio-stat-label">Expected Return</span>
+          <span className="portfolio-stat-label">
+            <FactorInfoPopover factorKey="Expected_Return">Expected Return</FactorInfoPopover>
+          </span>
           <span className="portfolio-stat-value pos">
             {(active["return"] * 100).toFixed(2)}%
           </span>
         </div>
         <div className="portfolio-stat-card">
-          <span className="portfolio-stat-label">Volatility</span>
+          <span className="portfolio-stat-label">
+            <FactorInfoPopover factorKey="Volatility">Volatility</FactorInfoPopover>
+          </span>
           <span className="portfolio-stat-value">
             {(active.volatility * 100).toFixed(2)}%
           </span>
         </div>
         <div className="portfolio-stat-card">
-          <span className="portfolio-stat-label">Sharpe Ratio</span>
+          <span className="portfolio-stat-label">
+            <FactorInfoPopover factorKey="Sharpe_Ratio">Sharpe Ratio</FactorInfoPopover>
+          </span>
           <span className="portfolio-stat-value" style={{ color: active.sharpe > 0 ? "var(--green)" : "var(--red)" }}>
             {active.sharpe.toFixed(3)}
           </span>
         </div>
         <div className="portfolio-stat-card">
-          <span className="portfolio-stat-label">Risk-Free Rate</span>
+          <span className="portfolio-stat-label">
+            <FactorInfoPopover factorKey="Risk_Free_Rate">Risk-Free Rate</FactorInfoPopover>
+          </span>
           <span className="portfolio-stat-value">
             {(rf_annual * 100).toFixed(2)}%
           </span>
@@ -713,7 +731,9 @@ function PortfolioTab({ data }) {
       <div className="portfolio-grid">
         {/* Efficient Frontier */}
         <div className="portfolio-chart-section">
-          <h3 className="portfolio-chart-title">Efficient Frontier</h3>
+          <h3 className="portfolio-chart-title">
+            <FactorInfoPopover factorKey="Efficient_Frontier">Efficient Frontier</FactorInfoPopover>
+          </h3>
           <ResponsiveContainer width="100%" height={360}>
             <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -829,19 +849,25 @@ function PortfolioTab({ data }) {
               </thead>
               <tbody>
                 <tr>
-                  <td className="row-label">Return</td>
+                  <td className="row-label">
+                    <FactorInfoPopover factorKey="Expected_Return">Return</FactorInfoPopover>
+                  </td>
                   {Object.keys(PORTFOLIO_LABELS).map((key) => (
                     <td key={key}>{(portfolios[key]["return"] * 100).toFixed(2)}%</td>
                   ))}
                 </tr>
                 <tr>
-                  <td className="row-label">Volatility</td>
+                  <td className="row-label">
+                    <FactorInfoPopover factorKey="Volatility">Volatility</FactorInfoPopover>
+                  </td>
                   {Object.keys(PORTFOLIO_LABELS).map((key) => (
                     <td key={key}>{(portfolios[key].volatility * 100).toFixed(2)}%</td>
                   ))}
                 </tr>
                 <tr>
-                  <td className="row-label">Sharpe</td>
+                  <td className="row-label">
+                    <FactorInfoPopover factorKey="Sharpe_Ratio">Sharpe</FactorInfoPopover>
+                  </td>
                   {Object.keys(PORTFOLIO_LABELS).map((key) => (
                     <td key={key}>{portfolios[key].sharpe.toFixed(3)}</td>
                   ))}

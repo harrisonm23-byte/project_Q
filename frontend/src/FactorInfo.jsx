@@ -79,6 +79,111 @@ const FACTOR_DATA = {
     formulaDesc:
       "Monthly residual standard deviation scaled to annual by multiplying by the square root of 12.",
   },
+  Max_Sharpe: {
+    name: "Maximum Sharpe Ratio Portfolio",
+    short: "Max Sharpe",
+    meaning:
+      "The portfolio on the efficient frontier that offers the highest risk-adjusted return. It maximizes the ratio of excess return (above the risk-free rate) per unit of volatility.",
+    implications:
+      "This is the theoretically optimal risky portfolio for an investor who can also invest in the risk-free asset. It often concentrates in a few assets with high expected returns and low correlations.",
+  },
+  Min_Variance: {
+    name: "Minimum Variance Portfolio",
+    short: "Min Var",
+    meaning:
+      "The portfolio with the lowest possible volatility, regardless of expected return. It sits at the leftmost point on the efficient frontier.",
+    implications:
+      "Useful for risk-averse investors. It tends to overweight low-volatility, low-correlation assets. It doesn't consider expected returns, so it may sacrifice upside for stability.",
+  },
+  Equal_Weight: {
+    name: "Equal Weight Portfolio",
+    short: "1/N",
+    meaning:
+      "A simple portfolio that allocates the same percentage to every stock. No optimization is used \u2014 each asset gets a weight of 1/N where N is the number of stocks.",
+    implications:
+      "A robust benchmark that often outperforms optimized portfolios out-of-sample due to its simplicity and lack of estimation error. It provides maximum diversification across the number of holdings.",
+  },
+  Expected_Return: {
+    name: "Expected Return (Annualized)",
+    short: "E[R]",
+    meaning:
+      "The portfolio's projected annual return based on historical average returns of the constituent stocks, weighted by their portfolio allocation.",
+    implications:
+      "Higher expected return generally comes with higher risk. This is an estimate based on past data and may not predict future performance.",
+    formula: "E[R_p] = \u03A3 w_i \u00D7 E[R_i]",
+    formulaDesc:
+      "The weighted sum of each asset's expected return.",
+  },
+  Volatility: {
+    name: "Portfolio Volatility (Annualized)",
+    short: "\u03C3",
+    meaning:
+      "The standard deviation of the portfolio's returns, annualized. It measures total risk \u2014 how much the portfolio's value is expected to fluctuate.",
+    implications:
+      "Lower volatility means more stable returns. Diversification across low-correlation assets reduces portfolio volatility below the weighted average of individual volatilities.",
+    formula: "\u03C3_p = \u221A(w\u1D40 \u03A3 w)",
+    formulaDesc:
+      "Where w is the weight vector and \u03A3 is the covariance matrix of asset returns.",
+  },
+  Sharpe_Ratio: {
+    name: "Sharpe Ratio",
+    short: "SR",
+    meaning:
+      "The ratio of a portfolio's excess return (above the risk-free rate) to its volatility. It measures how much return you earn per unit of risk taken.",
+    implications:
+      "A higher Sharpe ratio means better risk-adjusted performance. Generally, SR > 1 is good, SR > 2 is very good. Negative Sharpe means the portfolio underperforms the risk-free rate.",
+    formula: "SR = (E[R_p] - R_f) / \u03C3_p",
+    formulaDesc:
+      "Excess return divided by portfolio standard deviation.",
+  },
+  Risk_Free_Rate: {
+    name: "Risk-Free Rate",
+    short: "R_f",
+    meaning:
+      "The return on a theoretically riskless investment, typically approximated by the yield on short-term U.S. Treasury bills (1-month T-bill).",
+    implications:
+      "It serves as the baseline for measuring excess returns. All factor premia and portfolio performance are measured relative to this rate.",
+  },
+  Efficient_Frontier: {
+    name: "Efficient Frontier",
+    short: "EF",
+    meaning:
+      "The set of portfolios that offer the highest expected return for each level of risk. It forms a curve in risk-return space, and any portfolio below the curve is suboptimal.",
+    implications:
+      "Portfolios on the frontier dominate all others \u2014 you cannot get more return without taking more risk. The curve is derived from mean-variance optimization using historical data.",
+  },
+  Variance_Attribution: {
+    name: "Variance Attribution",
+    short: "Var Attr",
+    meaning:
+      "Decomposes a stock's total return variance into the portion explained by each factor and the remaining idiosyncratic (stock-specific) variance.",
+    implications:
+      "Shows which factors are the biggest drivers of a stock's risk. Helps identify whether risk comes from market exposure, size, value, momentum, or company-specific events.",
+  },
+  Correlation: {
+    name: "Correlation Matrix",
+    short: "Corr",
+    meaning:
+      "Measures the linear relationship between pairs of stock returns on a scale from -1 to +1. Shows how closely stocks move together.",
+    implications:
+      "Correlations near +1 mean stocks move in lockstep (less diversification benefit). Near 0 means independence. Near -1 means they move oppositely (strong diversification).",
+  },
+  Rolling_Exposures: {
+    name: "Rolling Factor Exposures",
+    short: "Rolling",
+    meaning:
+      "Factor betas estimated over a moving window of time (e.g., 36 months). Shows how a stock's sensitivity to each factor changes over time.",
+    implications:
+      "Useful for detecting regime changes \u2014 for example, a tech stock that started behaving more like a value stock. Helps assess whether current factor exposures differ from the full-period average.",
+  },
+  Stress_Test: {
+    name: "Factor Shock Stress Testing",
+    short: "Stress",
+    meaning:
+      "Simulates the impact of extreme factor movements on each stock. Predefined scenarios (e.g., market crash, value rotation) apply shocks to factor returns and estimate portfolio losses.",
+    implications:
+      "Helps identify which stocks are most vulnerable to specific market regimes. Useful for tail-risk management and understanding worst-case exposures.",
+  },
 };
 
 function getFactorInfo(key) {
@@ -189,7 +294,7 @@ function FactorInfoPopover({ factorKey, children }) {
       <span
         ref={triggerRef}
         className="factor-info-trigger"
-        onClick={() => setOpen(!open)}
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
