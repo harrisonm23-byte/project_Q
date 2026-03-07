@@ -15,13 +15,15 @@ def _expected_returns(model: FactorModel) -> pd.Series:
     E[R_i - Rf] = alpha_i * 12  +  sum_j(beta_ij * E[F_j]) * 12
     """
     betas = model.get_betas()
-    alphas = model.get_alphas()
     _, fac = model._align_data()
     factor_means = fac[model.factor_names].mean()  # monthly
 
-    # Monthly expected excess return, then annualize
-    monthly = alphas + betas @ factor_means
-    return monthly * 12
+    # get_alphas() already annualizes (monthly alpha * 12),
+    # so only annualize the factor component separately.
+    alphas_annual = model.get_alphas()  # already * 12
+    factor_component_annual = (betas @ factor_means) * 12
+
+    return alphas_annual + factor_component_annual
 
 
 def _annual_cov(model: FactorModel) -> pd.DataFrame:
