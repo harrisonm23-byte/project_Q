@@ -1080,12 +1080,6 @@ function BacktestTab({ data }) {
 
 /* ── Stress Test Tab ───────────────────────────────────────────────────── */
 
-const PORTFOLIO_LABELS = {
-  max_sharpe: "Max Sharpe",
-  min_variance: "Min Variance",
-  equal_weight: "Equal Weight",
-};
-
 const SCENARIO_COLORS = [
   "#ef4444", "#f59e0b", "#6366f1", "#10b981", "#3b82f6",
 ];

@@ -28,8 +28,19 @@ run.sh               - Startup script (builds frontend if needed, starts uvicorn
 - Python: numpy, pandas, scipy, statsmodels, yfinance, matplotlib, seaborn, fastapi, uvicorn
 - Node.js: react, react-dom, recharts, vite
 
+## Features
+- **Factor Analysis**: Fama-French factor decomposition (Mkt-RF, SMB, HML, Mom)
+- **Rolling Window**: Configurable rolling-window beta estimation
+- **Portfolio Construction**: Mean-variance optimization (Max Sharpe, Min Variance, Equal Weight)
+- **Backtesting**: Historical portfolio performance simulation
+- **Correlation Heatmap**: Observed vs factor-implied correlation matrices
+- **Stress Testing**: Factor shock scenario analysis with per-stock/portfolio impact
+
 ## Development Notes
 - Frontend build output goes to `api/static/` (configured in vite.config.js)
 - `pandas_datareader` was replaced with direct HTTP fetching from Ken French's data library due to pandas 2.x incompatibility
 - Server runs on port 5000 (Replit webview requirement)
 - PYTHONPATH is set in run.sh to make `project_q` importable
+- `fuser -k 5000/tcp` before restart to avoid "address already in use"
+- Cache-busting: index.html served with no-cache headers; Vite hashes asset filenames
+- Tooltips: FactorInfoPopover renders via React portal to avoid overflow clipping
