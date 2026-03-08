@@ -91,7 +91,9 @@ const FACTOR_DATA = {
     name: "Minimum Variance Portfolio",
     short: "Min Var",
     meaning:
-      "The portfolio with the lowest possible volatility, regardless of expected return. It sits at the leftmost point on the efficient frontier.",
+      "Finds the portfolio with the lowest possible volatility, ignoring expected returns entirely — it only cares about risk.",
+    formula:
+      "Minimize: wᵀΣw (portfolio variance)\nSubject to: Σwᵢ = 1 (weights sum to 100%), wᵢ ≥ 0 (long-only, no shorting)\n\nw = vector of portfolio weights\nΣ = covariance matrix (captures how stocks move together)\nwᵀΣw = portfolio variance (a quadratic form)",
     implications:
       "Useful for risk-averse investors. It tends to overweight low-volatility, low-correlation assets. It doesn't consider expected returns, so it may sacrifice upside for stability.",
   },
