@@ -23,6 +23,42 @@ import { FactorHedgePanel, SummaryHedgePanel } from "./HedgePanel";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
+const HBAR_PALETTE = [
+  "#7c8574", "#c4965a", "#6b8cae", "#b8764e", "#8e7cc3",
+  "#5a9e8f", "#c97b7b", "#7a9a5e", "#a08872", "#6c7ea0",
+];
+
+function HBar({ data, valueKey, labelKey, formatValue, colorKey, singleColor, maxValue: maxOverride }) {
+  const maxVal = maxOverride != null ? maxOverride : Math.max(...data.map((d) => Math.abs(d[valueKey])));
+
+  return (
+    <div className="hbar-chart">
+      {data.map((d, i) => {
+        const val = d[valueKey];
+        const absVal = Math.abs(val);
+        const pct = maxVal > 0 ? (absVal / maxVal) * 100 : 0;
+        const color = d[colorKey] || singleColor || HBAR_PALETTE[i % HBAR_PALETTE.length];
+        const label = d[labelKey];
+        const formatted = formatValue ? formatValue(val) : val;
+
+        return (
+          <div key={label} className="hbar-row">
+            <div className="hbar-bar-wrap">
+              <div
+                className="hbar-bar"
+                style={{ width: `${Math.max(pct, 2)}%`, background: color }}
+              >
+                <span className="hbar-label">{label}</span>
+              </div>
+              <span className="hbar-value">{formatted}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const DEFAULT_TICKERS = "AAPL, MSFT, GOOGL, AMZN, JPM";
 
 const WINDOW_OPTIONS = [12, 24, 36, 48, 60];
@@ -392,22 +428,16 @@ function RSquaredChart({ data }) {
   const { r_squared, tickers } = data;
   const chartData = tickers
     .map((t) => ({ ticker: t, R2: r_squared[t].R_squared }))
-    .sort((a, b) => a.R2 - b.R2);
+    .sort((a, b) => b.R2 - a.R2);
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      <BarChart data={chartData} layout="vertical">
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis type="number" domain={[0, 1]} />
-        <YAxis dataKey="ticker" type="category" width={60} />
-        <Tooltip formatter={(v) => v.toFixed(4)} />
-        <Bar dataKey="R2" name="R²">
-          {chartData.map((_, i) => (
-            <Cell key={i} fill={COLORS[0]} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <HBar
+      data={chartData}
+      valueKey="R2"
+      labelKey="ticker"
+      formatValue={(v) => v.toFixed(4)}
+      maxValue={1}
+    />
   );
 }
 
@@ -822,19 +852,13 @@ function PortfolioTab({ data }) {
           <h3 className="portfolio-chart-title">
             {PORTFOLIO_LABELS[selected]} Weights
           </h3>
-          <ResponsiveContainer width="100%" height={360}>
-            <BarChart data={weightsData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" tickFormatter={(v) => `${v}%`} domain={[0, "auto"]} />
-              <YAxis dataKey="ticker" type="category" width={55} tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(v) => `${v.toFixed(2)}%`} />
-              <Bar dataKey="weight" name="Weight" radius={[0, 4, 4, 0]}>
-                {weightsData.map((_, i) => (
-                  <Cell key={i} fill={PORTFOLIO_COLORS[selected]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <HBar
+            data={weightsData}
+            valueKey="weight"
+            labelKey="ticker"
+            formatValue={(v) => `${v.toFixed(1)}%`}
+            singleColor={PORTFOLIO_COLORS[selected]}
+          />
 
           {/* Comparison table */}
           <div className="portfolio-compare">
@@ -1102,8 +1126,12 @@ function StressTestTab({ data }) {
 
   // Sort stocks by impact for the bar chart
   const stockData = Object.entries(scene.stock_impacts)
-    .map(([ticker, impact]) => ({ ticker, impact: +(impact * 100).toFixed(2) }))
-    .sort((a, b) => a.impact - b.impact);
+    .map(([ticker, impact]) => ({
+      ticker,
+      impact: +(impact * 100).toFixed(2),
+      _color: impact >= 0 ? "#10b981" : "#ef4444",
+    }))
+    .sort((a, b) => b.impact - a.impact);
 
   // Factor shocks for display
   const shockData = factor_names.map((f) => ({
@@ -1169,28 +1197,13 @@ function StressTestTab({ data }) {
       {/* Stock impact waterfall */}
       <div className="stress-section">
         <h3 className="portfolio-chart-title">Estimated Stock Impact (monthly)</h3>
-        <ResponsiveContainer width="100%" height={Math.max(220, stockData.length * 36)}>
-          <BarChart data={stockData} layout="vertical" margin={{ left: 50, right: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis
-              type="number"
-              tick={{ fontSize: 11 }}
-              tickFormatter={(v) => `${v}%`}
-            />
-            <YAxis
-              type="category"
-              dataKey="ticker"
-              tick={{ fontSize: 12, fontWeight: 600 }}
-              width={50}
-            />
-            <Tooltip formatter={(v) => [`${Number(v).toFixed(2)}%`, "Impact"]} />
-            <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
-              {stockData.map((d, i) => (
-                <Cell key={i} fill={d.impact >= 0 ? "#10b981" : "#ef4444"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <HBar
+          data={stockData}
+          valueKey="impact"
+          labelKey="ticker"
+          formatValue={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`}
+          colorKey="_color"
+        />
       </div>
 
       {/* Portfolio-level impacts */}
