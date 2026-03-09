@@ -23,10 +23,6 @@ import { FactorHedgePanel, SummaryHedgePanel } from "./HedgePanel";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
-const HBAR_PALETTE = [
-  "#7c8574", "#c4965a", "#6b8cae", "#b8764e", "#8e7cc3",
-  "#5a9e8f", "#c97b7b", "#7a9a5e", "#a08872", "#6c7ea0",
-];
 
 function HBar({ data, valueKey, labelKey, formatValue, colorKey, singleColor, maxValue: maxOverride }) {
   const maxVal = maxOverride != null ? maxOverride : Math.max(...data.map((d) => Math.abs(d[valueKey])));
@@ -37,7 +33,7 @@ function HBar({ data, valueKey, labelKey, formatValue, colorKey, singleColor, ma
         const val = d[valueKey];
         const absVal = Math.abs(val);
         const pct = maxVal > 0 ? (absVal / maxVal) * 100 : 0;
-        const color = d[colorKey] || singleColor || HBAR_PALETTE[i % HBAR_PALETTE.length];
+        const color = d[colorKey] || singleColor || COLORS[i % COLORS.length];
         const label = d[labelKey];
         const formatted = formatValue ? formatValue(val) : val;
 
