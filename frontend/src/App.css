@@ -588,7 +588,7 @@ tr:last-child td {
   font-size: 0.78rem;
   color: var(--accent-hover);
   margin-bottom: 0.35rem;
-  white-space: pre-wrap;
+  white-space: nowrap;
   overflow-x: auto;
 }
 
@@ -1387,50 +1387,328 @@ tr:last-child td {
   }
 }
 
-/* ── Perplexity-style Horizontal Bars ─────────────────────────────────── */
+/* ── Alpha Significance Tab ─────────────────────────────────────────────── */
 
-.hbar-chart {
+.alpha-intro {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.alpha-cards {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 0.5rem 0;
+  gap: 0.75rem;
 }
 
-.hbar-row {
-  width: 100%;
+.alpha-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  transition: border-color 0.15s;
 }
 
-.hbar-bar-wrap {
+.alpha-card-sig {
+  border-color: var(--green);
+  border-left: 3px solid var(--green);
+}
+
+.alpha-card-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
 }
 
-.hbar-bar {
-  position: relative;
-  min-height: 34px;
-  border-radius: 6px;
+.alpha-card-ticker {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.alpha-card-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+}
+
+.alpha-badge-sig {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--green);
+}
+
+.alpha-badge-insig {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--muted);
+}
+
+.alpha-card-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.alpha-stat {
   display: flex;
-  align-items: center;
-  padding: 0 12px;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 60px;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
-.hbar-label {
-  color: #fff;
-  font-size: 0.8rem;
+.alpha-stat-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
   font-weight: 600;
-  white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  letter-spacing: 0.01em;
 }
 
-.hbar-value {
+.alpha-stat-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.alpha-card-breakdown {
+  margin-bottom: 0.75rem;
+}
+
+.alpha-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.78rem;
+}
+
+.alpha-bar-label {
+  min-width: 85px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.alpha-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.alpha-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.alpha-bar-factor {
+  background: var(--accent);
+}
+
+.alpha-bar-sig {
+  background: var(--green);
+}
+
+.alpha-bar-insig {
+  background: var(--muted);
+}
+
+.alpha-card-r2 {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.alpha-card-verdict {
+  font-size: 0.8rem;
+  line-height: 1.5;
   color: var(--text);
+  padding: 0.6rem 0.75rem;
+  background: var(--surface);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}
+
+@media (max-width: 640px) {
+  .alpha-card-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Regime Analysis Tab ────────────────────────────────────────────────── */
+
+.regime-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.regime-stat-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-top: 3px solid;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.regime-stat-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.75rem 0.25rem;
+}
+
+.regime-stat-body {
+  padding: 0.25rem 0.75rem 0.6rem;
+}
+
+.regime-timeline-section {
+  margin-bottom: 1.25rem;
+}
+
+.regime-comparison {
+  margin-bottom: 1.25rem;
+}
+
+.regime-beta-chart {
+  margin-bottom: 1rem;
+}
+
+/* ── Pairs / Spread Tab ─────────────────────────────────────────────────── */
+
+.pairs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pair-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.pair-card:hover {
+  border-color: var(--accent);
+}
+
+.pair-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pair-card-names {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.pair-long {
+  color: var(--green);
+}
+
+.pair-separator {
+  color: var(--muted);
+}
+
+.pair-short {
+  color: var(--red);
+}
+
+.pair-card-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pair-edge-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.pair-sharpe {
   font-size: 0.82rem;
   font-weight: 700;
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.pair-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  padding: 0 1rem 0.75rem;
+}
+
+.pair-card-detail {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.pair-edge-desc {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}
+
+.pair-betas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pair-beta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.pair-beta-factor {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 80px;
+  font-weight: 600;
+}
+
+.pair-beta-bar-wrap {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+}
+
+.pair-beta-bar {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 0.3s ease;
 }

@@ -83,6 +83,86 @@ def variance_attribution(model: FactorModel) -> pd.DataFrame:
     return pd.DataFrame(rows, index=betas.index)
 
 
+def alpha_significance(model: FactorModel) -> dict:
+    """Detailed alpha / intercept analysis per ticker.
+
+    For each asset, returns annualized alpha, t-statistic, p-value,
+    95% confidence interval, and a plain-English verdict on whether
+    the alpha is statistically significant.
+
+    Returns
+    -------
+    dict
+        Mapping of ticker → dict with keys:
+        alpha_monthly, alpha_annual, t_stat, p_value,
+        ci_lower, ci_upper, significant (bool), verdict (str),
+        r_squared, factor_return_annual (return explained by factors).
+    """
+    if not model.results:
+        raise RuntimeError("Call .fit() first.")
+
+    ret, fac = model._align_data()
+    rf = fac[model.rf_column]
+    betas_df = model.get_betas()
+    factor_means = fac[model.factor_names].mean()
+
+    result = {}
+    for ticker, reg in model.results.items():
+        alpha_m = reg.alpha  # monthly
+        alpha_a = alpha_m * 12  # annualized
+
+        # t-stat and p-value for the intercept (const)
+        t_stat = reg.t_stats.get("const", 0.0) if "const" in reg.t_stats else 0.0
+        p_val = reg.p_values.get("const", 1.0) if "const" in reg.p_values else 1.0
+
+        # We need to re-run OLS briefly to get the confidence interval for const
+        import statsmodels.api as sm
+
+        y = ret[ticker] - rf
+        X = sm.add_constant(fac[model.factor_names])
+        mask = y.notna() & X.notna().all(axis=1)
+        ols = sm.OLS(y[mask], X[mask]).fit()
+
+        t_stat = float(ols.tvalues["const"])
+        p_val = float(ols.pvalues["const"])
+        ci = ols.conf_int(alpha=0.05).loc["const"]
+        ci_lower = float(ci.iloc[0]) * 12  # annualize
+        ci_upper = float(ci.iloc[1]) * 12
+
+        # Factor-explained return (annualized)
+        factor_ret = float((betas_df.loc[ticker] @ factor_means) * 12)
+
+        significant = p_val < 0.05
+        if significant:
+            direction = "positive" if alpha_a > 0 else "negative"
+            verdict = (
+                f"Statistically significant {direction} alpha of "
+                f"{alpha_a * 100:.2f}% annualized (p={p_val:.3f}). "
+                f"This suggests genuine skill or mispricing beyond factor exposure."
+            )
+        else:
+            verdict = (
+                f"Alpha of {alpha_a * 100:.2f}% annualized is NOT statistically "
+                f"significant (p={p_val:.3f}). The return is largely explained by "
+                f"factor exposures — no convincing evidence of edge."
+            )
+
+        result[ticker] = {
+            "alpha_monthly": round(alpha_m, 8),
+            "alpha_annual": round(alpha_a, 6),
+            "t_stat": round(t_stat, 4),
+            "p_value": round(p_val, 6),
+            "ci_lower": round(ci_lower, 6),
+            "ci_upper": round(ci_upper, 6),
+            "significant": significant,
+            "verdict": verdict,
+            "r_squared": round(reg.r_squared, 6),
+            "factor_return_annual": round(factor_ret, 6),
+        }
+
+    return result
+
+
 def correlation_matrix(model: FactorModel) -> dict[str, pd.DataFrame]:
     """Compute total and factor-implied correlation matrices.
 

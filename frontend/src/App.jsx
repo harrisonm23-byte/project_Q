@@ -23,38 +23,6 @@ import { FactorHedgePanel, SummaryHedgePanel } from "./HedgePanel";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
-
-function HBar({ data, valueKey, labelKey, formatValue, colorKey, singleColor, maxValue: maxOverride }) {
-  const maxVal = maxOverride != null ? maxOverride : Math.max(...data.map((d) => Math.abs(d[valueKey])));
-
-  return (
-    <div className="hbar-chart">
-      {data.map((d, i) => {
-        const val = d[valueKey];
-        const absVal = Math.abs(val);
-        const pct = maxVal > 0 ? (absVal / maxVal) * 100 : 0;
-        const color = d[colorKey] || singleColor || COLORS[i % COLORS.length];
-        const label = d[labelKey];
-        const formatted = formatValue ? formatValue(val) : val;
-
-        return (
-          <div key={label} className="hbar-row">
-            <div className="hbar-bar-wrap">
-              <div
-                className="hbar-bar"
-                style={{ width: `${Math.max(pct, 2)}%`, background: color }}
-              >
-                <span className="hbar-label">{label}</span>
-              </div>
-              <span className="hbar-value">{formatted}</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 const DEFAULT_TICKERS = "AAPL, MSFT, GOOGL, AMZN, JPM";
 
 const WINDOW_OPTIONS = [12, 24, 36, 48, 60];
@@ -236,12 +204,16 @@ export default function App() {
               ...(data.portfolio ? ["portfolio"] : []),
               ...(data.backtest ? ["backtest"] : []),
               ...(data.stress ? ["stress"] : []),
-              ...(data.rolling_betas ? ["rolling"] : [])
+              ...(data.rolling_betas ? ["rolling"] : []),
+              ...(data.alpha_analysis ? ["alpha"] : []),
+              ...(data.regime ? ["regime"] : []),
+              ...(data.pairs ? ["pairs"] : []),
             ].map((tab) => {
               const tabLabel = {
                 summary: "Summary", betas: "Factor Loadings", r_squared: "R-Squared",
                 variance: "Variance", correlation: "Correlation", portfolio: "Portfolio",
                 backtest: "Backtest", stress: "Stress Test", rolling: "Rolling",
+                alpha: "Alpha", regime: "Regimes", pairs: "Pairs",
               }[tab];
               const tabInfoKey = {
                 r_squared: "R_squared", variance: "Variance_Attribution",
@@ -271,6 +243,9 @@ export default function App() {
             {activeTab === "backtest" && <BacktestTab data={data} />}
             {activeTab === "stress" && <StressTestTab data={data} />}
             {activeTab === "rolling" && <RollingChart data={data} />}
+            {activeTab === "alpha" && <AlphaTab data={data} />}
+            {activeTab === "regime" && <RegimeTab data={data} />}
+            {activeTab === "pairs" && <PairsTab data={data} />}
           </div>
         </div>
       )}
@@ -424,16 +399,22 @@ function RSquaredChart({ data }) {
   const { r_squared, tickers } = data;
   const chartData = tickers
     .map((t) => ({ ticker: t, R2: r_squared[t].R_squared }))
-    .sort((a, b) => b.R2 - a.R2);
+    .sort((a, b) => a.R2 - b.R2);
 
   return (
-    <HBar
-      data={chartData}
-      valueKey="R2"
-      labelKey="ticker"
-      formatValue={(v) => v.toFixed(4)}
-      maxValue={1}
-    />
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={chartData} layout="vertical">
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis type="number" domain={[0, 1]} />
+        <YAxis dataKey="ticker" type="category" width={60} />
+        <Tooltip formatter={(v) => v.toFixed(4)} />
+        <Bar dataKey="R2" name="R²">
+          {chartData.map((_, i) => (
+            <Cell key={i} fill={COLORS[0]} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -848,13 +829,19 @@ function PortfolioTab({ data }) {
           <h3 className="portfolio-chart-title">
             {PORTFOLIO_LABELS[selected]} Weights
           </h3>
-          <HBar
-            data={weightsData}
-            valueKey="weight"
-            labelKey="ticker"
-            formatValue={(v) => `${v.toFixed(1)}%`}
-            singleColor={PORTFOLIO_COLORS[selected]}
-          />
+          <ResponsiveContainer width="100%" height={360}>
+            <BarChart data={weightsData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" tickFormatter={(v) => `${v}%`} domain={[0, "auto"]} />
+              <YAxis dataKey="ticker" type="category" width={55} tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(v) => `${v.toFixed(2)}%`} />
+              <Bar dataKey="weight" name="Weight" radius={[0, 4, 4, 0]}>
+                {weightsData.map((_, i) => (
+                  <Cell key={i} fill={PORTFOLIO_COLORS[selected]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
 
           {/* Comparison table */}
           <div className="portfolio-compare">
@@ -1122,12 +1109,8 @@ function StressTestTab({ data }) {
 
   // Sort stocks by impact for the bar chart
   const stockData = Object.entries(scene.stock_impacts)
-    .map(([ticker, impact]) => ({
-      ticker,
-      impact: +(impact * 100).toFixed(2),
-      _color: impact >= 0 ? "#10b981" : "#ef4444",
-    }))
-    .sort((a, b) => b.impact - a.impact);
+    .map(([ticker, impact]) => ({ ticker, impact: +(impact * 100).toFixed(2) }))
+    .sort((a, b) => a.impact - b.impact);
 
   // Factor shocks for display
   const shockData = factor_names.map((f) => ({
@@ -1193,13 +1176,28 @@ function StressTestTab({ data }) {
       {/* Stock impact waterfall */}
       <div className="stress-section">
         <h3 className="portfolio-chart-title">Estimated Stock Impact (monthly)</h3>
-        <HBar
-          data={stockData}
-          valueKey="impact"
-          labelKey="ticker"
-          formatValue={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`}
-          colorKey="_color"
-        />
+        <ResponsiveContainer width="100%" height={Math.max(220, stockData.length * 36)}>
+          <BarChart data={stockData} layout="vertical" margin={{ left: 50, right: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+            <XAxis
+              type="number"
+              tick={{ fontSize: 11 }}
+              tickFormatter={(v) => `${v}%`}
+            />
+            <YAxis
+              type="category"
+              dataKey="ticker"
+              tick={{ fontSize: 12, fontWeight: 600 }}
+              width={50}
+            />
+            <Tooltip formatter={(v) => [`${Number(v).toFixed(2)}%`, "Impact"]} />
+            <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
+              {stockData.map((d, i) => (
+                <Cell key={i} fill={d.impact >= 0 ? "#10b981" : "#ef4444"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Portfolio-level impacts */}
@@ -1306,6 +1304,419 @@ function RollingChart({ data }) {
           ))}
         </LineChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* ── Alpha Significance Tab ────────────────────────────────────────────── */
+
+function AlphaTab({ data }) {
+  const { alpha_analysis, tickers } = data;
+  if (!alpha_analysis) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        No alpha analysis available.
+      </p>
+    );
+  }
+
+  const sorted = [...tickers]
+    .filter((t) => alpha_analysis[t])
+    .sort((a, b) => Math.abs(alpha_analysis[b].alpha_annual) - Math.abs(alpha_analysis[a].alpha_annual));
+
+  return (
+    <div className="alpha-tab">
+      <p className="alpha-intro">
+        Is there actually edge here, or is it all factor exposure? Alpha represents
+        returns not explained by market, size, value, and momentum factors.
+      </p>
+
+      <div className="alpha-cards">
+        {sorted.map((ticker) => {
+          const a = alpha_analysis[ticker];
+          const sig = a.significant;
+          return (
+            <div key={ticker} className={`alpha-card ${sig ? "alpha-card-sig" : ""}`}>
+              <div className="alpha-card-header">
+                <span className="alpha-card-ticker">{ticker}</span>
+                <span className={`alpha-card-badge ${sig ? "alpha-badge-sig" : "alpha-badge-insig"}`}>
+                  {sig ? "Significant" : "Not Significant"}
+                </span>
+              </div>
+
+              <div className="alpha-card-stats">
+                <div className="alpha-stat">
+                  <span className="alpha-stat-label">Annualized Alpha</span>
+                  <span className={`alpha-stat-value ${a.alpha_annual >= 0 ? "pos" : "neg"}`}>
+                    {(a.alpha_annual * 100).toFixed(2)}%
+                  </span>
+                </div>
+                <div className="alpha-stat">
+                  <span className="alpha-stat-label">t-Statistic</span>
+                  <span className="alpha-stat-value">{a.t_stat.toFixed(2)}</span>
+                </div>
+                <div className="alpha-stat">
+                  <span className="alpha-stat-label">p-Value</span>
+                  <span className={`alpha-stat-value ${a.p_value < 0.05 ? "pos" : ""}`}>
+                    {a.p_value < 0.001 ? "<0.001" : a.p_value.toFixed(3)}
+                  </span>
+                </div>
+                <div className="alpha-stat">
+                  <span className="alpha-stat-label">95% CI (ann.)</span>
+                  <span className="alpha-stat-value" style={{ fontSize: "0.78rem" }}>
+                    [{(a.ci_lower * 100).toFixed(1)}%, {(a.ci_upper * 100).toFixed(1)}%]
+                  </span>
+                </div>
+              </div>
+
+              <div className="alpha-card-breakdown">
+                <div className="alpha-bar-row">
+                  <span className="alpha-bar-label">Factor Return</span>
+                  <div className="alpha-bar-track">
+                    <div
+                      className="alpha-bar-fill alpha-bar-factor"
+                      style={{ width: `${Math.min(Math.abs(a.factor_return_annual) / (Math.abs(a.factor_return_annual) + Math.abs(a.alpha_annual) + 0.001) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className={a.factor_return_annual >= 0 ? "pos" : "neg"}>
+                    {(a.factor_return_annual * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="alpha-bar-row">
+                  <span className="alpha-bar-label">Alpha</span>
+                  <div className="alpha-bar-track">
+                    <div
+                      className={`alpha-bar-fill ${sig ? "alpha-bar-sig" : "alpha-bar-insig"}`}
+                      style={{ width: `${Math.min(Math.abs(a.alpha_annual) / (Math.abs(a.factor_return_annual) + Math.abs(a.alpha_annual) + 0.001) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className={a.alpha_annual >= 0 ? "pos" : "neg"}>
+                    {(a.alpha_annual * 100).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="alpha-card-r2">
+                R² = {(a.r_squared * 100).toFixed(1)}% of variance explained by factors
+              </div>
+
+              <p className="alpha-card-verdict">{a.verdict}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Regime Analysis Tab ──────────────────────────────────────────────── */
+
+const REGIME_COLORS = { bull: "#10b981", recovery: "#f59e0b", bear: "#ef4444" };
+const REGIME_LABELS = { bull: "Bull", recovery: "Recovery", bear: "Bear" };
+
+function RegimeTab({ data }) {
+  const { regime } = data;
+  const [selectedTicker, setSelectedTicker] = useState(null);
+
+  if (!regime || regime.error) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        {regime?.error || "No regime analysis available."}
+      </p>
+    );
+  }
+
+  const { regimes, regime_stats, ticker_regimes, full_period, factor_names, tickers } = regime;
+  const activeTicker = selectedTicker || tickers[0];
+
+  // Build timeline chart data
+  const timelineData = regimes.map((r) => ({
+    date: r.date.slice(0, 7),
+    value: r.regime === "bull" ? 1 : r.regime === "recovery" ? 0 : -1,
+    regime: r.regime,
+  }));
+
+  // Build comparison data for selected ticker
+  const tickerData = ticker_regimes[activeTicker] || {};
+  const fullData = full_period[activeTicker] || {};
+
+  return (
+    <div className="regime-tab">
+      <p className="alpha-intro">
+        How do factor loadings shift across market environments? The same stock can
+        behave very differently in bull markets vs. drawdowns.
+      </p>
+
+      {/* Regime overview stats */}
+      <div className="regime-overview">
+        {["bull", "recovery", "bear"].map((r) => {
+          const s = regime_stats[r];
+          if (!s) return null;
+          return (
+            <div key={r} className="regime-stat-card" style={{ borderTopColor: REGIME_COLORS[r] }}>
+              <div className="regime-stat-title" style={{ color: REGIME_COLORS[r] }}>
+                {REGIME_LABELS[r]}
+              </div>
+              <div className="regime-stat-body">
+                <div className="backtest-metric-row">
+                  <span className="backtest-metric-label">Months</span>
+                  <span className="backtest-metric-value">{s.count}</span>
+                </div>
+                <div className="backtest-metric-row">
+                  <span className="backtest-metric-label">% of Period</span>
+                  <span className="backtest-metric-value">{(s.pct * 100).toFixed(0)}%</span>
+                </div>
+                <div className="backtest-metric-row">
+                  <span className="backtest-metric-label">Avg Mkt Return (ann.)</span>
+                  <span className={`backtest-metric-value ${s.avg_market_return >= 0 ? "pos" : "neg"}`}>
+                    {(s.avg_market_return * 100).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Regime timeline */}
+      <div className="regime-timeline-section">
+        <h3 className="portfolio-chart-title">Market Regime Timeline</h3>
+        <ResponsiveContainer width="100%" height={80}>
+          <BarChart data={timelineData} barCategoryGap={0} barGap={0}>
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+            <Tooltip
+              formatter={(v, name, props) => [REGIME_LABELS[props.payload.regime], "Regime"]}
+              labelFormatter={(label) => `Date: ${label}`}
+            />
+            <Bar dataKey="value" radius={0}>
+              {timelineData.map((d, i) => (
+                <Cell key={i} fill={REGIME_COLORS[d.regime]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Ticker selector */}
+      <div className="rolling-controls">
+        <label className="rolling-label">Ticker</label>
+        <div className="rolling-ticker-pills">
+          {tickers.map((t) => (
+            <button
+              key={t}
+              className={`rolling-pill ${t === activeTicker ? "active" : ""}`}
+              onClick={() => setSelectedTicker(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Factor loadings comparison table */}
+      <div className="regime-comparison">
+        <h3 className="portfolio-chart-title">{activeTicker} — Factor Loadings by Regime</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Full Period</th>
+              {["bull", "recovery", "bear"].map((r) =>
+                tickerData[r] ? (
+                  <th key={r} style={{ color: REGIME_COLORS[r] }}>
+                    {REGIME_LABELS[r]} ({tickerData[r].n_months}mo)
+                  </th>
+                ) : null
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="row-label">Alpha (ann.)</td>
+              <td className={fullData.alpha_annual >= 0 ? "pos" : "neg"}>
+                {(fullData.alpha_annual * 100).toFixed(2)}%
+              </td>
+              {["bull", "recovery", "bear"].map((r) =>
+                tickerData[r] ? (
+                  <td key={r} className={tickerData[r].alpha_annual >= 0 ? "pos" : "neg"}>
+                    {(tickerData[r].alpha_annual * 100).toFixed(2)}%
+                  </td>
+                ) : null
+              )}
+            </tr>
+            {factor_names.map((f) => (
+              <tr key={f}>
+                <td className="row-label">Beta {f}</td>
+                <td>{fullData.betas?.[f]?.toFixed(3) ?? "—"}</td>
+                {["bull", "recovery", "bear"].map((r) =>
+                  tickerData[r] ? (
+                    <td key={r}>{tickerData[r].betas[f]?.toFixed(3) ?? "—"}</td>
+                  ) : null
+                )}
+              </tr>
+            ))}
+            <tr>
+              <td className="row-label">R²</td>
+              <td>{fullData.r_squared?.toFixed(3) ?? "—"}</td>
+              {["bull", "recovery", "bear"].map((r) =>
+                tickerData[r] ? (
+                  <td key={r}>{tickerData[r].r_squared?.toFixed(3) ?? "—"}</td>
+                ) : null
+              )}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Beta shift chart */}
+      {factor_names.length > 0 && (
+        <div className="regime-beta-chart">
+          <h3 className="portfolio-chart-title">{activeTicker} — Beta Shift Across Regimes</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={factor_names.map((f) => {
+                const row = { factor: f };
+                if (fullData.betas) row["Full Period"] = fullData.betas[f] || 0;
+                ["bull", "recovery", "bear"].forEach((r) => {
+                  if (tickerData[r]) row[REGIME_LABELS[r]] = tickerData[r].betas[f] || 0;
+                });
+                return row;
+              })}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="factor" />
+              <YAxis />
+              <Tooltip formatter={(v) => v.toFixed(3)} />
+              <Bar dataKey="Full Period" fill="var(--muted)" />
+              {["bull", "recovery", "bear"].map((r) =>
+                tickerData[r] ? (
+                  <Bar key={r} dataKey={REGIME_LABELS[r]} fill={REGIME_COLORS[r]} />
+                ) : null
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Pairs / Spread Decomposition Tab ─────────────────────────────────── */
+
+const EDGE_COLORS = { alpha: "#10b981", factor_bet: "#f59e0b", neutral: "#64748b" };
+const EDGE_LABELS = { alpha: "Alpha Edge", factor_bet: "Factor Bet", neutral: "Neutral" };
+
+function PairsTab({ data }) {
+  const { pairs } = data;
+
+  if (!pairs || !pairs.pairs || pairs.pairs.length === 0) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        Pair analysis requires at least 2 stocks.
+      </p>
+    );
+  }
+
+  const { pairs: pairList, factor_names } = pairs;
+  const [expandedPair, setExpandedPair] = useState(null);
+
+  return (
+    <div className="pairs-tab">
+      <p className="alpha-intro">
+        Long/short pair analysis: decompose each pair into factor exposure vs. genuine alpha.
+        Sorted by absolute spread Sharpe ratio.
+      </p>
+
+      <div className="pairs-list">
+        {pairList.map((p, idx) => {
+          const key = `${p.long}-${p.short}`;
+          const expanded = expandedPair === key;
+          return (
+            <div key={key} className="pair-card">
+              <div
+                className="pair-card-header"
+                onClick={() => setExpandedPair(expanded ? null : key)}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="pair-card-names">
+                  <span className="pair-long">Long {p.long}</span>
+                  <span className="pair-separator">/</span>
+                  <span className="pair-short">Short {p.short}</span>
+                </div>
+                <div className="pair-card-badges">
+                  <span
+                    className="pair-edge-badge"
+                    style={{ background: EDGE_COLORS[p.edge_type] + "22", color: EDGE_COLORS[p.edge_type], borderColor: EDGE_COLORS[p.edge_type] }}
+                  >
+                    {EDGE_LABELS[p.edge_type]}
+                  </span>
+                  <span className={`pair-sharpe ${p.spread_sharpe >= 0 ? "pos" : "neg"}`}>
+                    Sharpe {p.spread_sharpe.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pair-card-stats">
+                <div className="alpha-stat">
+                  <span className="alpha-stat-label">Spread Alpha</span>
+                  <span className={`alpha-stat-value ${p.spread_alpha_annual >= 0 ? "pos" : "neg"}`}>
+                    {(p.spread_alpha_annual * 100).toFixed(2)}%
+                  </span>
+                </div>
+                <div className="alpha-stat">
+                  <span className="alpha-stat-label">Spread Vol</span>
+                  <span className="alpha-stat-value">
+                    {(p.spread_vol_annual * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="alpha-stat">
+                  <span className="alpha-stat-label">Residual Corr</span>
+                  <span className="alpha-stat-value">
+                    {p.residual_correlation.toFixed(3)}
+                  </span>
+                </div>
+              </div>
+
+              {expanded && (
+                <div className="pair-card-detail">
+                  <p className="pair-edge-desc">{p.edge_description}</p>
+
+                  <h4 className="portfolio-chart-title" style={{ marginTop: "0.75rem" }}>
+                    Spread Factor Betas (Long {p.long} − Short {p.short})
+                  </h4>
+                  <div className="pair-betas">
+                    {factor_names.map((f, i) => (
+                      <div key={f} className="pair-beta-row">
+                        <span className="pair-beta-factor">
+                          <span
+                            className="factor-legend-swatch"
+                            style={{ background: COLORS[i % COLORS.length] }}
+                          />
+                          {f}
+                        </span>
+                        <div className="pair-beta-bar-wrap">
+                          <div
+                            className="pair-beta-bar"
+                            style={{
+                              width: `${Math.min(Math.abs(p.spread_betas[f]) * 50, 100)}%`,
+                              marginLeft: p.spread_betas[f] < 0 ? "auto" : undefined,
+                              marginRight: p.spread_betas[f] >= 0 ? "auto" : undefined,
+                              background: p.spread_betas[f] >= 0 ? "var(--green)" : "var(--red)",
+                            }}
+                          />
+                        </div>
+                        <span className={p.spread_betas[f] >= 0 ? "pos" : "neg"} style={{ minWidth: 50, textAlign: "right" }}>
+                          {p.spread_betas[f] >= 0 ? "+" : ""}{p.spread_betas[f].toFixed(3)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

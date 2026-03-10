@@ -36,15 +36,11 @@ run.sh               - Startup script (builds frontend if needed, starts uvicorn
 - **Correlation Heatmap**: Observed vs factor-implied correlation matrices
 - **Stress Testing**: Factor shock scenario analysis with per-stock/portfolio impact
 
-## UI Components
-- **HBar**: Perplexity-style horizontal bar chart (CSS-based, labels inside bars, values right-aligned). Used for R-Squared, Portfolio Weights, and Stress Test Impact charts.
-- **FactorInfoPopover**: Clickable tooltip with formula support, renders via React portal
-
 ## Development Notes
 - Frontend build output goes to `api/static/` (configured in vite.config.js)
 - `pandas_datareader` was replaced with direct HTTP fetching from Ken French's data library due to pandas 2.x incompatibility
 - Server runs on port 5000 (Replit webview requirement)
 - PYTHONPATH is set in run.sh to make `project_q` importable
 - `fuser -k 5000/tcp` before restart to avoid "address already in use"
-- Cache-busting: NoCacheMiddleware on HTML responses; Vite hashes asset filenames
+- Cache-busting: index.html served with no-cache headers; Vite hashes asset filenames
 - Tooltips: FactorInfoPopover renders via React portal to avoid overflow clipping

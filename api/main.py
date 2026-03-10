@@ -15,9 +15,11 @@ from pydantic import BaseModel
 
 from project_q.data import fetch_fama_french_factors, fetch_stock_returns
 from project_q.factors import FactorModel
-from project_q.factors.analysis import correlation_matrix, variance_attribution
+from project_q.factors.analysis import alpha_significance, correlation_matrix, variance_attribution
 from project_q.factors.backtest import backtest_portfolios
+from project_q.factors.pairs import pair_decomposition
 from project_q.factors.portfolio import portfolio_optimize
+from project_q.factors.regime import regime_analysis
 from project_q.factors.stress import stress_test
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -69,6 +71,9 @@ class AnalyzeResponse(BaseModel):
     portfolio: dict | None = None
     backtest: dict | None = None
     stress: dict | None = None
+    alpha_analysis: dict | None = None
+    regime: dict | None = None
+    pairs: dict | None = None
     factor_names: list[str]
     tickers: list[str]
 
@@ -150,6 +155,17 @@ def analyze(req: AnalyzeRequest):
         # 9. Stress testing
         stress_json = stress_test(model)
 
+        # 10. Alpha significance analysis
+        alpha_json = alpha_significance(model)
+
+        # 11. Regime analysis
+        regime_json = regime_analysis(model)
+
+        # 12. Pair/spread decomposition (needs >= 2 assets)
+        pairs_json = None
+        if len(model.results) >= 2:
+            pairs_json = pair_decomposition(model)
+
         return AnalyzeResponse(
             summary=clean(summary_df).to_dict(orient="index"),
             alphas=clean(alphas).to_dict(),
@@ -161,6 +177,9 @@ def analyze(req: AnalyzeRequest):
             portfolio=portfolio_json,
             backtest=backtest_json,
             stress=stress_json,
+            alpha_analysis=alpha_json,
+            regime=regime_json,
+            pairs=pairs_json,
             factor_names=model.factor_names,
             tickers=list(model.results.keys()),
         )
