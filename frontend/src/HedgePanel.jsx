@@ -231,23 +231,21 @@ function SummaryHedgePanel({ ticker, betas, varianceAttr, factorNames, colors, o
           <span className="hedge-panel-factor">
             {activeFactor ? activeFactor : "Combined Hedge Strategy"}
           </span>
-          {!activeFactor && (
-            <div className="hedge-factor-pills">
-              {factorNames.map((f, i) => (
-                <button
-                  key={f}
-                  className="hedge-factor-pill"
-                  onClick={() => setActiveFactor(f)}
-                >
-                  <span
-                    className="hedge-factor-pill-swatch"
-                    style={{ background: factorColors[i % factorColors.length] }}
-                  />
-                  {f}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="hedge-factor-pills">
+            {factorNames.map((f, i) => (
+              <button
+                key={f}
+                className={`hedge-factor-pill${activeFactor === f ? " active" : ""}`}
+                onClick={() => setActiveFactor(f)}
+              >
+                <span
+                  className="hedge-factor-pill-swatch"
+                  style={{ background: factorColors[i % factorColors.length] }}
+                />
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="hedge-panel-header-actions">
           {activeFactor && (
