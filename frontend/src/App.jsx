@@ -30,7 +30,7 @@ const WINDOW_OPTIONS = [12, 24, 36, 48, 60];
 export default function App() {
   const [tickers, setTickers] = useState(DEFAULT_TICKERS);
   const [start, setStart] = useState("2019-01-01");
-  const [end, setEnd] = useState("2024-12-31");
+  const [end, setEnd] = useState("2025-12-31");
   const [rollingEnabled, setRollingEnabled] = useState(true);
   const [rollingWindow, setRollingWindow] = useState(36);
   const [loading, setLoading] = useState(false);
@@ -397,24 +397,26 @@ function BetasChart({ data }) {
 
 function RSquaredChart({ data }) {
   const { r_squared, tickers } = data;
-  const chartData = tickers
+  const sorted = tickers
     .map((t) => ({ ticker: t, R2: r_squared[t].R_squared }))
-    .sort((a, b) => a.R2 - b.R2);
+    .sort((a, b) => b.R2 - a.R2);
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      <BarChart data={chartData} layout="vertical">
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis type="number" domain={[0, 1]} />
-        <YAxis dataKey="ticker" type="category" width={60} />
-        <Tooltip formatter={(v) => v.toFixed(4)} />
-        <Bar dataKey="R2" name="R²">
-          {chartData.map((_, i) => (
-            <Cell key={i} fill={COLORS[0]} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="hbar-list">
+      {sorted.map(({ ticker, R2 }, i) => (
+        <div key={ticker} className="hbar-row">
+          <div className="hbar-track">
+            <div
+              className="hbar-fill"
+              style={{ width: `${R2 * 100}%`, background: COLORS[i % COLORS.length] }}
+            >
+              <span className="hbar-label">{ticker}</span>
+            </div>
+          </div>
+          <div className="hbar-value">{R2.toFixed(4)}</div>
+        </div>
+      ))}
+    </div>
   );
 }
 
