@@ -225,14 +225,6 @@ function SummaryHedgePanel({ ticker, betas, varianceAttr, factorNames, colors, o
   return (
     <div className="hedge-panel hedge-panel-summary">
       <div className="hedge-panel-header">
-        {activeFactor && (
-          <button
-            className="hedge-summary-btn"
-            onClick={() => setActiveFactor(null)}
-          >
-            ← Summary
-          </button>
-        )}
         <div className="hedge-panel-title">
           <span className="hedge-panel-ticker">{ticker}</span>
           <span className="hedge-panel-dot">·</span>
@@ -257,7 +249,17 @@ function SummaryHedgePanel({ ticker, betas, varianceAttr, factorNames, colors, o
             </div>
           )}
         </div>
-        <button className="hedge-close-btn" onClick={onClose}>&times;</button>
+        <div className="hedge-panel-header-actions">
+          {activeFactor && (
+            <button
+              className="hedge-summary-btn"
+              onClick={() => setActiveFactor(null)}
+            >
+              ← Summary
+            </button>
+          )}
+          <button className="hedge-close-btn" onClick={onClose}>&times;</button>
+        </div>
       </div>
 
       {activeFactor ? (

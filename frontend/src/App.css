@@ -713,6 +713,13 @@ tr:last-child td {
   flex-shrink: 0;
 }
 
+.hedge-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .hedge-summary-btn {
   display: inline-flex;
   align-items: center;
