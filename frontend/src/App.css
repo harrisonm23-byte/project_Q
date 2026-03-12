@@ -458,17 +458,16 @@ tr:last-child td {
 }
 
 .factor-info-trigger {
-  cursor: pointer;
+  cursor: default;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-bottom: 1px dashed var(--muted);
   padding-bottom: 1px;
   transition: color 0.15s;
 }
 
-.factor-info-trigger:hover {
-  color: var(--accent);
+.factor-info-icon:hover {
+  opacity: 0.8;
 }
 
 .factor-info-icon {
@@ -485,6 +484,7 @@ tr:last-child td {
   font-style: italic;
   flex-shrink: 0;
   line-height: 1;
+  cursor: pointer;
 }
 
 .factor-popover {
@@ -711,6 +711,28 @@ tr:last-child td {
   height: 8px;
   border-radius: 2px;
   flex-shrink: 0;
+}
+
+.hedge-summary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.hedge-summary-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .hedge-panel-ticker {

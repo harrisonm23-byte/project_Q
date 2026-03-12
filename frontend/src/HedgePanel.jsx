@@ -225,27 +225,37 @@ function SummaryHedgePanel({ ticker, betas, varianceAttr, factorNames, colors, o
   return (
     <div className="hedge-panel hedge-panel-summary">
       <div className="hedge-panel-header">
+        {activeFactor && (
+          <button
+            className="hedge-summary-btn"
+            onClick={() => setActiveFactor(null)}
+          >
+            ← Summary
+          </button>
+        )}
         <div className="hedge-panel-title">
           <span className="hedge-panel-ticker">{ticker}</span>
           <span className="hedge-panel-dot">·</span>
           <span className="hedge-panel-factor">
             {activeFactor ? activeFactor : "Combined Hedge Strategy"}
           </span>
-          <div className="hedge-factor-pills">
-            {factorNames.map((f, i) => (
-              <button
-                key={f}
-                className={`hedge-factor-pill ${activeFactor === f ? "active" : ""}`}
-                onClick={() => setActiveFactor(activeFactor === f ? null : f)}
-              >
-                <span
-                  className="hedge-factor-pill-swatch"
-                  style={{ background: factorColors[i % factorColors.length] }}
-                />
-                {f}
-              </button>
-            ))}
-          </div>
+          {!activeFactor && (
+            <div className="hedge-factor-pills">
+              {factorNames.map((f, i) => (
+                <button
+                  key={f}
+                  className="hedge-factor-pill"
+                  onClick={() => setActiveFactor(f)}
+                >
+                  <span
+                    className="hedge-factor-pill-swatch"
+                    style={{ background: factorColors[i % factorColors.length] }}
+                  />
+                  {f}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <button className="hedge-close-btn" onClick={onClose}>&times;</button>
       </div>

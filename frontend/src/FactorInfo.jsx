@@ -291,16 +291,15 @@ function FactorInfoPopover({ factorKey, children }) {
 
   return (
     <span className="factor-info-wrap">
-      <span
-        ref={triggerRef}
-        className="factor-info-trigger"
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
-      >
+      <span ref={triggerRef} className="factor-info-trigger">
         {children}
-        <span className="factor-info-icon">i</span>
+        <span
+          className="factor-info-icon"
+          onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && (e.stopPropagation(), setOpen(!open))}
+        >i</span>
       </span>
       {popoverContent}
     </span>
