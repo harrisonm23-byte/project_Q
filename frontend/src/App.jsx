@@ -395,27 +395,50 @@ function BetasChart({ data }) {
 
 /* ── R-Squared Chart ────────────────────────────────────────────────────── */
 
+const HBAR_PALETTE = ["#7c8574", "#c4965a", "#6b8cae", "#b8764e", "#8e7cc3"];
+
 function RSquaredChart({ data }) {
   const { r_squared, tickers } = data;
+  const [hovered, setHovered] = useState(null);
   const sorted = tickers
     .map((t) => ({ ticker: t, R2: r_squared[t].R_squared }))
     .sort((a, b) => b.R2 - a.R2);
 
+  const axisTicks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+
   return (
-    <div className="hbar-list">
-      {sorted.map(({ ticker, R2 }, i) => (
-        <div key={ticker} className="hbar-row">
-          <div className="hbar-track">
-            <div
-              className="hbar-fill"
-              style={{ width: `${R2 * 100}%`, background: COLORS[i % COLORS.length] }}
-            >
-              <span className="hbar-label">{ticker}</span>
+    <div className="hbar-chart-wrap">
+      <div className="hbar-list">
+        {sorted.map(({ ticker, R2 }, i) => (
+          <div
+            key={ticker}
+            className="hbar-row"
+            onMouseEnter={() => setHovered(ticker)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <div className="hbar-track">
+              <div
+                className="hbar-fill"
+                style={{ width: `${R2 * 100}%`, background: HBAR_PALETTE[i % HBAR_PALETTE.length] }}
+              >
+                <span className="hbar-label">{ticker}</span>
+              </div>
+              {hovered === ticker && (
+                <span className="hbar-tooltip">{R2.toFixed(4)}</span>
+              )}
             </div>
+            <div className="hbar-value">{R2.toFixed(4)}</div>
           </div>
-          <div className="hbar-value">{R2.toFixed(4)}</div>
-        </div>
-      ))}
+        ))}
+      </div>
+      <div className="hbar-axis">
+        {axisTicks.map((t) => (
+          <div key={t} className="hbar-axis-tick" style={{ left: `${t * 100}%` }}>
+            <div className="hbar-axis-line" />
+            <span className="hbar-axis-label">{t.toFixed(1)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
