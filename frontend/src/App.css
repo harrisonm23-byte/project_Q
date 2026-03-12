@@ -658,7 +658,7 @@ tr:last-child td {
 
 .hedge-panel-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -668,8 +668,49 @@ tr:last-child td {
 .hedge-panel-title {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   font-size: 0.85rem;
+}
+
+.hedge-factor-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.hedge-factor-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hedge-factor-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hedge-factor-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.hedge-factor-pill-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .hedge-panel-ticker {

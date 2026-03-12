@@ -200,9 +200,15 @@ function FactorHedgePanel({ ticker, factor, beta, pctVariance, onClose, onShowSu
   );
 }
 
+const FACTOR_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
+
 /* ── Summary hedge for all factors combined ─────────────────────────────── */
 
-function SummaryHedgePanel({ ticker, betas, varianceAttr, factorNames, onClose }) {
+function SummaryHedgePanel({ ticker, betas, varianceAttr, factorNames, colors, onClose }) {
+  const [activeFactor, setActiveFactor] = React.useState(null);
+
+  const factorColors = colors || FACTOR_COLORS;
+
   // Build per-factor data sorted by variance contribution
   const factors = factorNames
     .map((f) => ({
@@ -222,80 +228,167 @@ function SummaryHedgePanel({ ticker, betas, varianceAttr, factorNames, onClose }
         <div className="hedge-panel-title">
           <span className="hedge-panel-ticker">{ticker}</span>
           <span className="hedge-panel-dot">·</span>
-          <span className="hedge-panel-factor">Combined Hedge Strategy</span>
+          <span className="hedge-panel-factor">
+            {activeFactor ? activeFactor : "Combined Hedge Strategy"}
+          </span>
+          <div className="hedge-factor-pills">
+            {factorNames.map((f, i) => (
+              <button
+                key={f}
+                className={`hedge-factor-pill ${activeFactor === f ? "active" : ""}`}
+                onClick={() => setActiveFactor(activeFactor === f ? null : f)}
+              >
+                <span
+                  className="hedge-factor-pill-swatch"
+                  style={{ background: factorColors[i % factorColors.length] }}
+                />
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
         <button className="hedge-close-btn" onClick={onClose}>&times;</button>
       </div>
 
-      <div className="hedge-panel-body">
-        {/* Risk overview */}
-        <div className="hedge-section">
-          <h4>Risk Profile</h4>
-          <p>
-            {pctSystematic.toFixed(0)}% of {ticker}'s variance is systematic (factor-driven)
-            and {pctIdio.toFixed(0)}% is idiosyncratic (stock-specific).
-            {pctIdio > 50
-              ? " Most risk is stock-specific and cannot be hedged with factor instruments — only diversification helps."
-              : " Factor hedging can meaningfully reduce this stock's risk."}
-          </p>
-        </div>
-
-        {/* Per-factor breakdown */}
-        <div className="hedge-section">
-          <h4>Factor Priorities</h4>
-          <div className="hedge-factor-list">
-            {factors.map((f) => {
-              const urgency = getUrgency(f.pctVariance);
-              const kb = HEDGE_KB[f.name];
-              const direction = f.beta >= 0 ? "positive" : "negative";
-              const topInstrument = kb?.[direction]?.instruments[0];
-              return (
-                <div key={f.name} className="hedge-factor-row">
-                  <div className="hedge-factor-row-header">
-                    <span className="hedge-factor-name">{f.name}</span>
-                    <span className="hedge-factor-pct">{f.pctVariance.toFixed(1)}%</span>
-                    <span className="hedge-factor-urgency" style={{ color: urgency.color }}>
-                      {urgency.label}
-                    </span>
-                  </div>
-                  <div className="hedge-factor-row-detail">
-                    <span className={`hedge-factor-beta ${f.beta >= 0 ? "pos" : "neg"}`}>
-                      beta: {f.beta >= 0 ? "+" : ""}{f.beta.toFixed(3)}
-                    </span>
-                    {f.pctVariance >= 3 && topInstrument && (
-                      <span className="hedge-factor-rec">
-                        → {topInstrument.name}
-                      </span>
-                    )}
-                    {f.pctVariance < 3 && (
-                      <span className="hedge-factor-skip">No hedge needed</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Combined recommendation */}
-        {materialFactors.length > 0 && (
+      {activeFactor ? (
+        /* ── Factor detail view ── */
+        <FactorDetailBody
+          ticker={ticker}
+          factor={activeFactor}
+          beta={betas[ticker]?.[activeFactor] ?? 0}
+          pctVariance={(varianceAttr[ticker]?.[`pct_${activeFactor}`] ?? 0) * 100}
+        />
+      ) : (
+        /* ── Full summary view ── */
+        <div className="hedge-panel-body">
           <div className="hedge-section">
-            <h4>Combined Recommendation</h4>
-            <p>{buildCombinedRec(ticker, materialFactors, pctIdio)}</p>
-          </div>
-        )}
-
-        {materialFactors.length === 0 && (
-          <div className="hedge-section">
-            <h4>Combined Recommendation</h4>
+            <h4>Risk Profile</h4>
             <p>
-              No individual factor contributes materially to {ticker}'s variance.
-              The risk is primarily idiosyncratic — diversification across multiple
-              stocks is the most effective risk management approach.
+              {pctSystematic.toFixed(0)}% of {ticker}'s variance is systematic (factor-driven)
+              and {pctIdio.toFixed(0)}% is idiosyncratic (stock-specific).
+              {pctIdio > 50
+                ? " Most risk is stock-specific and cannot be hedged with factor instruments — only diversification helps."
+                : " Factor hedging can meaningfully reduce this stock's risk."}
             </p>
           </div>
-        )}
+
+          <div className="hedge-section">
+            <h4>Factor Priorities</h4>
+            <div className="hedge-factor-list">
+              {factors.map((f) => {
+                const urgency = getUrgency(f.pctVariance);
+                const kb = HEDGE_KB[f.name];
+                const direction = f.beta >= 0 ? "positive" : "negative";
+                const topInstrument = kb?.[direction]?.instruments[0];
+                return (
+                  <div key={f.name} className="hedge-factor-row">
+                    <div className="hedge-factor-row-header">
+                      <span className="hedge-factor-name">{f.name}</span>
+                      <span className="hedge-factor-pct">{f.pctVariance.toFixed(1)}%</span>
+                      <span className="hedge-factor-urgency" style={{ color: urgency.color }}>
+                        {urgency.label}
+                      </span>
+                    </div>
+                    <div className="hedge-factor-row-detail">
+                      <span className={`hedge-factor-beta ${f.beta >= 0 ? "pos" : "neg"}`}>
+                        beta: {f.beta >= 0 ? "+" : ""}{f.beta.toFixed(3)}
+                      </span>
+                      {f.pctVariance >= 3 && topInstrument && (
+                        <span className="hedge-factor-rec">→ {topInstrument.name}</span>
+                      )}
+                      {f.pctVariance < 3 && (
+                        <span className="hedge-factor-skip">No hedge needed</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {materialFactors.length > 0 ? (
+            <div className="hedge-section">
+              <h4>Combined Recommendation</h4>
+              <p>{buildCombinedRec(ticker, materialFactors, pctIdio)}</p>
+            </div>
+          ) : (
+            <div className="hedge-section">
+              <h4>Combined Recommendation</h4>
+              <p>
+                No individual factor contributes materially to {ticker}'s variance.
+                The risk is primarily idiosyncratic — diversification across multiple
+                stocks is the most effective risk management approach.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Inline factor detail body (reused inside SummaryHedgePanel) ─────────── */
+
+function FactorDetailBody({ ticker, factor, beta, pctVariance }) {
+  const kb = HEDGE_KB[factor];
+  if (!kb) return null;
+
+  const direction = beta >= 0 ? "positive" : "negative";
+  const strategy = kb[direction];
+  const urgency = getUrgency(pctVariance);
+  const showInstruments = urgency.level !== "negligible";
+
+  return (
+    <div className="hedge-panel-body">
+      <div className="hedge-stats">
+        <div className="hedge-stat">
+          <span className="hedge-stat-label">Factor Beta</span>
+          <span className={`hedge-stat-value ${beta >= 0 ? "pos" : "neg"}`}>
+            {beta >= 0 ? "+" : ""}{beta.toFixed(3)}
+          </span>
+        </div>
+        <div className="hedge-stat">
+          <span className="hedge-stat-label">Variance Contribution</span>
+          <span className="hedge-stat-value">{pctVariance.toFixed(1)}%</span>
+        </div>
+        <div className="hedge-stat">
+          <span className="hedge-stat-label">Hedge Urgency</span>
+          <span className="hedge-stat-value" style={{ color: urgency.color }}>
+            {urgency.label}
+          </span>
+        </div>
       </div>
+
+      <div className="hedge-section">
+        <h4>Exposure</h4>
+        <p>{strategy.exposure}</p>
+      </div>
+
+      <div className="hedge-section">
+        <h4>Assessment</h4>
+        <p>{getUrgencyMessage(urgency, factor)}</p>
+      </div>
+
+      {showInstruments && (
+        <div className="hedge-section">
+          <h4>Hedging Instruments</h4>
+          <div className="hedge-instruments">
+            {strategy.instruments.map((inst, i) => (
+              <div key={i} className="hedge-instrument">
+                <span className="hedge-instrument-name">{inst.name}</span>
+                <span className="hedge-instrument-desc">{inst.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showInstruments && (
+        <div className="hedge-section">
+          <h4>Sizing Guidance</h4>
+          <p className="hedge-sizing">{strategy.sizing}</p>
+        </div>
+      )}
     </div>
   );
 }
