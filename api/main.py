@@ -20,6 +20,7 @@ from project_q.factors.backtest import backtest_portfolios
 from project_q.factors.pairs import pair_decomposition
 from project_q.factors.portfolio import portfolio_optimize
 from project_q.factors.regime import regime_analysis
+from project_q.factors.sandbox import sandbox_data
 from project_q.factors.stress import stress_test
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -74,6 +75,7 @@ class AnalyzeResponse(BaseModel):
     alpha_analysis: dict | None = None
     regime: dict | None = None
     pairs: dict | None = None
+    sandbox: dict | None = None
     factor_names: list[str]
     tickers: list[str]
 
@@ -166,6 +168,9 @@ def analyze(req: AnalyzeRequest):
         if len(model.results) >= 2:
             pairs_json = pair_decomposition(model)
 
+        # 13. Factor sandbox data
+        sandbox_json = sandbox_data(model)
+
         return AnalyzeResponse(
             summary=clean(summary_df).to_dict(orient="index"),
             alphas=clean(alphas).to_dict(),
@@ -180,6 +185,7 @@ def analyze(req: AnalyzeRequest):
             alpha_analysis=alpha_json,
             regime=regime_json,
             pairs=pairs_json,
+            sandbox=sandbox_json,
             factor_names=model.factor_names,
             tickers=list(model.results.keys()),
         )

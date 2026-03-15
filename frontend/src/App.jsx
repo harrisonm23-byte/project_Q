@@ -208,12 +208,13 @@ export default function App() {
               ...(data.alpha_analysis ? ["alpha"] : []),
               ...(data.regime ? ["regime"] : []),
               ...(data.pairs ? ["pairs"] : []),
+              ...(data.sandbox ? ["sandbox"] : []),
             ].map((tab) => {
               const tabLabel = {
                 summary: "Summary", betas: "Factor Loadings", r_squared: "R-Squared",
                 variance: "Variance", correlation: "Correlation", portfolio: "Portfolio",
                 backtest: "Backtest", stress: "Stress Test", rolling: "Rolling",
-                alpha: "Alpha", regime: "Regimes", pairs: "Pairs",
+                alpha: "Alpha", regime: "Regimes", pairs: "Pairs", sandbox: "Sandbox",
               }[tab];
               const tabInfoKey = {
                 r_squared: "R_squared", variance: "Variance_Attribution",
@@ -246,6 +247,7 @@ export default function App() {
             {activeTab === "alpha" && <AlphaTab data={data} />}
             {activeTab === "regime" && <RegimeTab data={data} />}
             {activeTab === "pairs" && <PairsTab data={data} />}
+            {activeTab === "sandbox" && <SandboxTab data={data} />}
           </div>
         </div>
       )}
@@ -1726,6 +1728,288 @@ function PairsTab({ data }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ── Factor Sandbox Tab ────────────────────────────────────────────────── */
+
+function computeSandboxReturns(factorReturns, factorNames, residuals, betas, alphaMonthly) {
+  const n = residuals.length;
+  const returns = [];
+  for (let t = 0; t < n; t++) {
+    let r = alphaMonthly;
+    for (const f of factorNames) {
+      r += (betas[f] || 0) * (factorReturns[f]?.[t] || 0);
+    }
+    r += residuals[t] || 0;
+    returns.push(r);
+  }
+  return returns;
+}
+
+function cumulativeFromReturns(returns) {
+  const cum = [1];
+  for (let i = 0; i < returns.length; i++) {
+    cum.push(cum[cum.length - 1] * (1 + returns[i]));
+  }
+  return cum;
+}
+
+function SandboxTab({ data }) {
+  const { sandbox, factor_names } = data;
+  const [selectedTicker, setSelectedTicker] = useState(null);
+  const [betas, setBetas] = useState(null);
+  const [alpha, setAlpha] = useState(0);
+  const [snapshotDeltas, setSnapshotDeltas] = useState(null);
+
+  if (!sandbox) {
+    return (
+      <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>
+        Sandbox data not available.
+      </p>
+    );
+  }
+
+  const tickers = Object.keys(sandbox.tickers);
+  const activeTicker = selectedTicker || tickers[0];
+  const tickerInfo = sandbox.tickers[activeTicker];
+  const defaultBetas = tickerInfo?.betas || {};
+
+  const activeBetas = betas && selectedTicker ? betas : defaultBetas;
+
+  const setActiveBetas = useCallback((newBetas) => {
+    setBetas(newBetas);
+    setSnapshotDeltas(null);
+  }, []);
+
+  const handleTickerChange = useCallback((t) => {
+    setSelectedTicker(t);
+    setBetas(null);
+    setAlpha(0);
+    setSnapshotDeltas(null);
+  }, []);
+
+  const updateBeta = useCallback((factor, value) => {
+    setActiveBetas({ ...activeBetas, [factor]: value });
+  }, [activeBetas, setActiveBetas]);
+
+  const resetAll = () => {
+    setBetas(null);
+    setAlpha(0);
+    setSnapshotDeltas(null);
+  };
+
+  const handleSnapshot = () => {
+    const deltas = {};
+    for (const f of factor_names) {
+      const delta = (activeBetas[f] || 0) - (defaultBetas[f] || 0);
+      if (Math.abs(delta) > 0.001) deltas[f] = delta;
+    }
+    if (alpha !== 0) deltas.alpha = alpha;
+    setSnapshotDeltas(deltas);
+  };
+
+  const step = 0.05;
+
+  const originalReturns = useMemo(() =>
+    computeSandboxReturns(sandbox.factor_returns, factor_names, tickerInfo?.residuals || [], defaultBetas, tickerInfo?.alpha_monthly || 0),
+    [sandbox, factor_names, tickerInfo, defaultBetas]
+  );
+  const originalCum = useMemo(() => cumulativeFromReturns(originalReturns), [originalReturns]);
+
+  const sandboxReturns = useMemo(() =>
+    computeSandboxReturns(sandbox.factor_returns, factor_names, tickerInfo?.residuals || [], activeBetas, (tickerInfo?.alpha_monthly || 0) + alpha / 12),
+    [sandbox, factor_names, tickerInfo, activeBetas, alpha]
+  );
+  const sandboxCum = useMemo(() => cumulativeFromReturns(sandboxReturns), [sandboxReturns]);
+
+  const isModified = JSON.stringify(activeBetas) !== JSON.stringify(defaultBetas) || alpha !== 0;
+
+  const chartW = 680, chartH = 260;
+  const marginL = 50, marginR = 16, marginT = 16, marginB = 30;
+  const plotW = chartW - marginL - marginR;
+  const plotH = chartH - marginT - marginB;
+
+  const allValues = [...originalCum, ...sandboxCum];
+  const yMinRaw = Math.min(...allValues);
+  const yMaxRaw = Math.max(...allValues);
+  const yRange = yMaxRaw - yMinRaw || 0.1;
+  const yMin = yMinRaw - yRange * 0.1;
+  const yMax = yMaxRaw + yRange * 0.1;
+
+  const toX = (i) => marginL + (i / (originalCum.length - 1)) * plotW;
+  const toY = (v) => marginT + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+  const pathFromData = (vals) =>
+    vals.map((v, i) => `${i === 0 ? "M" : "L"}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(" ");
+
+  const originalPath = pathFromData(originalCum);
+  const sandboxPath = pathFromData(sandboxCum);
+
+  const yTicks = [];
+  for (let i = 0; i <= 5; i++) yTicks.push(yMin + (i / 5) * (yMax - yMin));
+
+  const dates = sandbox.dates || [];
+  const xLabels = [];
+  for (let i = 0; i < dates.length; i += 12) {
+    xLabels.push({ idx: i + 1, label: dates[i]?.slice(0, 7) || "" });
+  }
+
+  return (
+    <div className="sandbox-tab">
+      {/* Ticker selector */}
+      <div className="rolling-controls">
+        <label className="rolling-label">Ticker</label>
+        <div className="rolling-ticker-pills">
+          {tickers.map((t) => (
+            <button
+              key={t}
+              className={`rolling-pill ${t === activeTicker ? "active" : ""}`}
+              onClick={() => handleTickerChange(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        {isModified && (
+          <button className="sandbox-reset-btn" onClick={resetAll}>
+            Reset All
+          </button>
+        )}
+      </div>
+
+      {/* SVG Chart */}
+      <div className="sandbox-chart-wrap">
+        {isModified && (
+          <div className="sandbox-modified-badge">Modified</div>
+        )}
+        <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} className="sandbox-svg">
+          {yTicks.map((val, i) => (
+            <g key={i}>
+              <line x1={marginL} y1={toY(val)} x2={chartW - marginR} y2={toY(val)}
+                stroke="var(--border)" strokeWidth={0.5} strokeDasharray="3,3" />
+              <text x={marginL - 8} y={toY(val) + 3} fill="var(--muted)" fontSize={9}
+                fontFamily="monospace" textAnchor="end">
+                {((val - 1) * 100).toFixed(0)}%
+              </text>
+            </g>
+          ))}
+          {xLabels.map(({ idx, label }) => (
+            <text key={idx} x={toX(idx)} y={chartH - 4} fill="var(--muted)" fontSize={9}
+              fontFamily="monospace" textAnchor="middle">
+              {label}
+            </text>
+          ))}
+          {isModified && (
+            <path d={originalPath} fill="none" stroke="var(--muted)" strokeWidth={1.2}
+              strokeDasharray="4,4" opacity={0.4} />
+          )}
+          <path d={sandboxPath} fill="none"
+            stroke={isModified ? "var(--accent)" : "var(--muted)"}
+            strokeWidth={2} />
+          <text x={toX(sandboxCum.length - 1) + 4} y={toY(sandboxCum[sandboxCum.length - 1]) - 6}
+            fill={isModified ? "var(--accent)" : "var(--muted)"} fontSize={10}
+            fontFamily="monospace" fontWeight={600}>
+            {((sandboxCum[sandboxCum.length - 1] - 1) * 100).toFixed(1)}%
+          </text>
+          {isModified && (
+            <text x={toX(originalCum.length - 1) + 4} y={toY(originalCum[originalCum.length - 1]) + 12}
+              fill="var(--muted)" fontSize={9} fontFamily="monospace">
+              {((originalCum[originalCum.length - 1] - 1) * 100).toFixed(1)}% (original)
+            </text>
+          )}
+        </svg>
+        {isModified && (
+          <div className="sandbox-chart-legend">
+            <span className="sandbox-legend-item">
+              <span className="sandbox-legend-line sandbox-legend-dashed" /> Original
+            </span>
+            <span className="sandbox-legend-item sandbox-legend-modified">
+              <span className="sandbox-legend-line sandbox-legend-solid" /> Modified
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Factor controls */}
+      <div className="sandbox-controls-header">
+        <span className="sandbox-controls-title">Factor Exposures</span>
+      </div>
+
+      <div className="sandbox-steppers">
+        {factor_names.map((f, i) => {
+          const val = activeBetas[f] || 0;
+          const def = defaultBetas[f] || 0;
+          const isZero = val === 0;
+          return (
+            <div key={f} className={`sandbox-stepper ${isZero ? "sandbox-stepper-zero" : ""}`}>
+              <div className="sandbox-stepper-label">
+                <span className="factor-legend-swatch" style={{ background: COLORS[i % COLORS.length] }} />
+                <span>{f}</span>
+              </div>
+              <div className="sandbox-stepper-controls">
+                <button className="sandbox-step-btn" onClick={() => updateBeta(f, Math.round((val - step) * 1000) / 1000)}>-</button>
+                <span className={`sandbox-beta-value ${val === 0 ? "" : val > 0 ? "pos" : "neg"}`}>
+                  {val >= 0 ? "+" : ""}{val.toFixed(3)}
+                </span>
+                <button className="sandbox-step-btn" onClick={() => updateBeta(f, Math.round((val + step) * 1000) / 1000)}>+</button>
+                <button className={`sandbox-zero-btn ${val === 0 ? "active" : ""}`} onClick={() => updateBeta(f, 0)}>0</button>
+                <button className="sandbox-reset-one-btn" onClick={() => updateBeta(f, def)} title="Reset to regression estimate">RST</button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Alpha control */}
+        <div className={`sandbox-stepper ${alpha !== 0 ? "sandbox-stepper-alpha" : ""}`}>
+          <div className="sandbox-stepper-label">
+            <span className="factor-legend-swatch" style={{ background: "#8b5cf6" }} />
+            <span>Alpha (ann.)</span>
+          </div>
+          <div className="sandbox-stepper-controls">
+            <button className="sandbox-step-btn" onClick={() => setAlpha(Math.round((alpha - 0.01) * 1000) / 1000)}>-</button>
+            <span className={`sandbox-beta-value ${alpha === 0 ? "" : "sandbox-alpha-val"}`}>
+              {alpha >= 0 ? "+" : ""}{(alpha * 100).toFixed(1)}%
+            </span>
+            <button className="sandbox-step-btn" onClick={() => setAlpha(Math.round((alpha + 0.01) * 1000) / 1000)}>+</button>
+            <button className={`sandbox-zero-btn ${alpha === 0 ? "active" : ""}`} onClick={() => setAlpha(0)}>0</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Snapshot */}
+      {isModified && (
+        <button
+          className={`sandbox-snapshot-btn ${snapshotDeltas ? "sandbox-snapshot-taken" : ""}`}
+          onClick={handleSnapshot}
+          disabled={!!snapshotDeltas}
+        >
+          {snapshotDeltas ? "Snapshot Captured" : "Take Snapshot — View Deltas"}
+        </button>
+      )}
+
+      {/* Delta display */}
+      {snapshotDeltas && (
+        <div className="sandbox-deltas">
+          <span className="sandbox-deltas-title">Exposure Deltas</span>
+          <div className="sandbox-deltas-grid">
+            {Object.entries(snapshotDeltas).map(([key, val]) => (
+              <div key={key} className="sandbox-delta-chip">
+                <span className="sandbox-delta-label">{key === "alpha" ? "Alpha" : key}</span>
+                <span className={`sandbox-delta-value ${val > 0 ? "pos" : "neg"}`}>
+                  {val > 0 ? "+" : ""}{key === "alpha" ? (val * 100).toFixed(1) + "%" : val.toFixed(3)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="backtest-disclaimer">
+        What-if analysis using actual factor returns and regression residuals.
+        Adjust betas to explore counterfactual return scenarios.
+      </p>
     </div>
   );
 }
