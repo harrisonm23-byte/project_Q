@@ -1760,13 +1760,21 @@ const PORTFOLIO_KEY = "__portfolio__";
 
 function HoldButton({ onStep, className, children }) {
   const timerRef = React.useRef(null);
-  const stop = () => { clearTimeout(timerRef.current); clearInterval(timerRef.current); };
-  const start = () => {
-    onStep();
+  const onStepRef = React.useRef(onStep);
+  React.useEffect(() => { onStepRef.current = onStep; }, [onStep]);
+
+  const stop = React.useCallback(() => {
+    clearTimeout(timerRef.current);
+    clearInterval(timerRef.current);
+  }, []);
+
+  const start = React.useCallback(() => {
+    onStepRef.current();
     timerRef.current = setTimeout(() => {
-      timerRef.current = setInterval(onStep, 60);
+      timerRef.current = setInterval(() => onStepRef.current(), 60);
     }, 350);
-  };
+  }, []);
+
   return (
     <button
       className={className}
