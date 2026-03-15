@@ -20,10 +20,12 @@ def _fetch_spy_returns(dates: pd.DatetimeIndex) -> list[float]:
         if raw.empty:
             return [0.0] * len(dates)
         prices = raw["Close"].resample("ME").last()
+        if hasattr(prices, "squeeze"):
+            prices = prices.squeeze()
         rets = prices.pct_change().dropna()
         rets.index = rets.index.to_period("M").to_timestamp("M")
         dates_ts = dates.to_period("M").to_timestamp("M")
-        aligned = rets.reindex(dates_ts).fillna(0.0)
+        aligned = rets.reindex(dates_ts).fillna(0.0).squeeze()
         return [round(float(v), 8) for v in aligned.values]
     except Exception:
         return [0.0] * len(dates)
