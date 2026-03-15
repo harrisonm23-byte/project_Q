@@ -1830,7 +1830,14 @@ function normalizeWeights(rawWeights) {
 }
 
 function SandboxTab({ data }) {
-  const { sandbox, factor_names } = data;
+  const { sandbox, factor_names, r_squared, tickers: allTickers } = data;
+
+  // Match the same color assignment as the R-Squared HBar chart (sorted by R² desc)
+  const tickerColorMap = useMemo(() => {
+    if (!r_squared || !allTickers) return {};
+    const sorted = [...allTickers].sort((a, b) => (r_squared[b]?.R_squared || 0) - (r_squared[a]?.R_squared || 0));
+    return Object.fromEntries(sorted.map((t, i) => [t, HBAR_PALETTE[i % HBAR_PALETTE.length]]));
+  }, [r_squared, allTickers]);
   const [selectedTicker, setSelectedTicker] = useState(PORTFOLIO_KEY);
   const [betas, setBetas] = useState(null);
   const [alpha, setAlpha] = useState(0);
@@ -2134,7 +2141,7 @@ function SandboxTab({ data }) {
               return (
                 <div key={t} className="sandbox-stepper">
                   <div className="sandbox-stepper-label">
-                    <span className="factor-legend-swatch" style={{ background: COLORS[(factor_names.length + i) % COLORS.length] }} />
+                    <span className="factor-legend-swatch" style={{ background: tickerColorMap[t] || HBAR_PALETTE[i % HBAR_PALETTE.length] }} />
                     <span>{t}</span>
                     <span className="sandbox-weight-pct">{pct.toFixed(1)}%</span>
                   </div>
