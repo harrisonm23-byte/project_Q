@@ -2195,3 +2195,48 @@ tr:last-child td {
 .sandbox-beta-input.sandbox-alpha-val {
   color: #8b5cf6;
 }
+
+.sandbox-spy-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  color: #6b7280;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  margin-left: auto;
+  opacity: 0.5;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.sandbox-spy-toggle.active {
+  opacity: 1;
+  border-color: #6b7280;
+}
+
+.sandbox-legend-spy {
+  display: inline-block;
+  width: 16px;
+  border-top: 1.5px dashed #6b7280;
+}
+
+.sandbox-controls-hint {
+  font-size: 0.65rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-left: 0.5rem;
+}
+
+.sandbox-weight-pct {
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+  margin-left: 0.35rem;
+  font-weight: 600;
+}

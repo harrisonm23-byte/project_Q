@@ -1808,20 +1808,25 @@ function StepperInput({ value, onChange, format, parse, className }) {
   );
 }
 
-function buildPortfolioInfo(tickersData, factor_names) {
-  const tickerList = Object.values(tickersData);
-  const n = tickerList.length;
-  if (n === 0) return { betas: {}, residuals: [], alpha_monthly: 0 };
+function buildPortfolioInfo(tickersData, factor_names, effectiveWeights) {
+  const tickerKeys = Object.keys(tickersData);
+  if (tickerKeys.length === 0) return { betas: {}, residuals: [], alpha_monthly: 0 };
   const avgBetas = {};
   for (const f of factor_names) {
-    avgBetas[f] = tickerList.reduce((sum, t) => sum + (t.betas?.[f] || 0), 0) / n;
+    avgBetas[f] = tickerKeys.reduce((sum, t) => sum + (effectiveWeights[t] || 0) * (tickersData[t]?.betas?.[f] || 0), 0);
   }
-  const resLen = tickerList[0].residuals?.length || 0;
+  const resLen = tickersData[tickerKeys[0]]?.residuals?.length || 0;
   const avgResiduals = Array.from({ length: resLen }, (_, i) =>
-    tickerList.reduce((sum, t) => sum + (t.residuals?.[i] || 0), 0) / n
+    tickerKeys.reduce((sum, t) => sum + (effectiveWeights[t] || 0) * (tickersData[t]?.residuals?.[i] || 0), 0)
   );
-  const avgAlpha = tickerList.reduce((sum, t) => sum + (t.alpha_monthly || 0), 0) / n;
+  const avgAlpha = tickerKeys.reduce((sum, t) => sum + (effectiveWeights[t] || 0) * (tickersData[t]?.alpha_monthly || 0), 0);
   return { betas: avgBetas, residuals: avgResiduals, alpha_monthly: avgAlpha };
+}
+
+function normalizeWeights(rawWeights) {
+  const total = Object.values(rawWeights).reduce((s, v) => s + Math.max(0, v), 0);
+  if (total === 0) return Object.fromEntries(Object.keys(rawWeights).map(k => [k, 0]));
+  return Object.fromEntries(Object.entries(rawWeights).map(([k, v]) => [k, Math.max(0, v) / total]));
 }
 
 function SandboxTab({ data }) {
@@ -1830,6 +1835,16 @@ function SandboxTab({ data }) {
   const [betas, setBetas] = useState(null);
   const [alpha, setAlpha] = useState(0);
   const [snapshotDeltas, setSnapshotDeltas] = useState(null);
+  const [showSpy, setShowSpy] = useState(true);
+
+  const tickers = useMemo(() => sandbox ? Object.keys(sandbox.tickers) : [], [sandbox]);
+
+  const initWeights = useMemo(
+    () => Object.fromEntries(tickers.map(t => [t, 1])),
+    [tickers]
+  );
+  const [weights, setWeights] = useState(() => Object.fromEntries(tickers.map(t => [t, 1])));
+  const effectiveWeights = useMemo(() => normalizeWeights(weights), [weights]);
 
   if (!sandbox) {
     return (
@@ -1839,14 +1854,17 @@ function SandboxTab({ data }) {
     );
   }
 
-  const tickers = Object.keys(sandbox.tickers);
   const activeTicker = selectedTicker || PORTFOLIO_KEY;
   const isPortfolio = activeTicker === PORTFOLIO_KEY;
-  const tickerInfo = isPortfolio
-    ? buildPortfolioInfo(sandbox.tickers, factor_names)
-    : sandbox.tickers[activeTicker];
-  const defaultBetas = tickerInfo?.betas || {};
 
+  const tickerInfo = useMemo(() =>
+    isPortfolio
+      ? buildPortfolioInfo(sandbox.tickers, factor_names, effectiveWeights)
+      : sandbox.tickers[activeTicker],
+    [isPortfolio, sandbox.tickers, factor_names, effectiveWeights, activeTicker]
+  );
+
+  const defaultBetas = tickerInfo?.betas || {};
   const activeBetas = betas ? betas : defaultBetas;
 
   const setActiveBetas = useCallback((newBetas) => {
@@ -1865,10 +1883,17 @@ function SandboxTab({ data }) {
     setActiveBetas({ ...activeBetas, [factor]: value });
   }, [activeBetas, setActiveBetas]);
 
+  const updateWeight = useCallback((ticker, value) => {
+    setWeights(prev => ({ ...prev, [ticker]: Math.max(0, value) }));
+    setBetas(null);
+    setSnapshotDeltas(null);
+  }, []);
+
   const resetAll = () => {
     setBetas(null);
     setAlpha(0);
     setSnapshotDeltas(null);
+    if (isPortfolio) setWeights(initWeights);
   };
 
   const handleSnapshot = () => {
@@ -1882,6 +1907,13 @@ function SandboxTab({ data }) {
   };
 
   const step = 0.05;
+  const wStep = 0.05;
+
+  const spyCum = useMemo(() => {
+    const raw = sandbox.spy_returns || [];
+    if (raw.every(v => v === 0)) return null;
+    return cumulativeFromReturns(raw);
+  }, [sandbox.spy_returns]);
 
   const originalReturns = useMemo(() =>
     computeSandboxReturns(sandbox.factor_returns, factor_names, tickerInfo?.residuals || [], defaultBetas, tickerInfo?.alpha_monthly || 0),
@@ -1895,14 +1927,15 @@ function SandboxTab({ data }) {
   );
   const sandboxCum = useMemo(() => cumulativeFromReturns(sandboxReturns), [sandboxReturns]);
 
-  const isModified = JSON.stringify(activeBetas) !== JSON.stringify(defaultBetas) || alpha !== 0;
+  const isModified = JSON.stringify(activeBetas) !== JSON.stringify(defaultBetas) || alpha !== 0 ||
+    (isPortfolio && JSON.stringify(weights) !== JSON.stringify(initWeights));
 
   const chartW = 680, chartH = 260;
   const marginL = 50, marginR = 16, marginT = 16, marginB = 30;
   const plotW = chartW - marginL - marginR;
   const plotH = chartH - marginT - marginB;
 
-  const allValues = [...originalCum, ...sandboxCum];
+  const allValues = [...originalCum, ...sandboxCum, ...(showSpy && spyCum ? spyCum : [])];
   const yMinRaw = Math.min(...allValues);
   const yMaxRaw = Math.max(...allValues);
   const yRange = yMaxRaw - yMinRaw || 0.1;
@@ -1917,6 +1950,7 @@ function SandboxTab({ data }) {
 
   const originalPath = pathFromData(originalCum);
   const sandboxPath = pathFromData(sandboxCum);
+  const spyPath = spyCum ? pathFromData(spyCum) : null;
 
   const yTicks = [];
   for (let i = 0; i <= 5; i++) yTicks.push(yMin + (i / 5) * (yMax - yMin));
@@ -1978,10 +2012,23 @@ function SandboxTab({ data }) {
               {label}
             </text>
           ))}
+          {/* S&P 500 benchmark */}
+          {showSpy && spyPath && (
+            <>
+              <path d={spyPath} fill="none" stroke="#6b7280" strokeWidth={1.2}
+                strokeDasharray="5,3" opacity={0.65} />
+              <text x={toX(spyCum.length - 1) + 4} y={toY(spyCum[spyCum.length - 1]) + 4}
+                fill="#6b7280" fontSize={9} fontFamily="monospace" opacity={0.8}>
+                S&P {((spyCum[spyCum.length - 1] - 1) * 100).toFixed(1)}%
+              </text>
+            </>
+          )}
+          {/* Original (ghost when modified) */}
           {isModified && (
             <path d={originalPath} fill="none" stroke="var(--muted)" strokeWidth={1.2}
               strokeDasharray="4,4" opacity={0.4} />
           )}
+          {/* Main / sandbox line */}
           <path d={sandboxPath} fill="none"
             stroke={isModified ? "var(--accent)" : "var(--muted)"}
             strokeWidth={2} />
@@ -1997,19 +2044,30 @@ function SandboxTab({ data }) {
             </text>
           )}
         </svg>
-        {isModified && (
-          <div className="sandbox-chart-legend">
-            <span className="sandbox-legend-item">
-              <span className="sandbox-legend-line sandbox-legend-dashed" /> Original
-            </span>
-            <span className="sandbox-legend-item sandbox-legend-modified">
-              <span className="sandbox-legend-line sandbox-legend-solid" /> Modified
-            </span>
-          </div>
-        )}
+        <div className="sandbox-chart-legend">
+          {isModified && (
+            <>
+              <span className="sandbox-legend-item">
+                <span className="sandbox-legend-line sandbox-legend-dashed" /> Original
+              </span>
+              <span className="sandbox-legend-item sandbox-legend-modified">
+                <span className="sandbox-legend-line sandbox-legend-solid" /> Modified
+              </span>
+            </>
+          )}
+          {spyPath && (
+            <button
+              className={`sandbox-spy-toggle ${showSpy ? "active" : ""}`}
+              onClick={() => setShowSpy(s => !s)}
+            >
+              <span className="sandbox-legend-line sandbox-legend-spy" />
+              S&P 500
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Factor controls */}
+      {/* Factor Exposures */}
       <div className="sandbox-controls-header">
         <span className="sandbox-controls-title">Factor Exposures</span>
       </div>
@@ -2062,6 +2120,50 @@ function SandboxTab({ data }) {
         </div>
       </div>
 
+      {/* Portfolio weights (portfolio mode only) */}
+      {isPortfolio && (
+        <>
+          <div className="sandbox-controls-header" style={{ marginTop: "1rem" }}>
+            <span className="sandbox-controls-title">Portfolio Weights</span>
+            <span className="sandbox-controls-hint">Adjusting weights updates factor betas proportionally</span>
+          </div>
+          <div className="sandbox-steppers">
+            {tickers.map((t, i) => {
+              const raw = weights[t] ?? 1;
+              const pct = (effectiveWeights[t] || 0) * 100;
+              return (
+                <div key={t} className="sandbox-stepper">
+                  <div className="sandbox-stepper-label">
+                    <span className="factor-legend-swatch" style={{ background: COLORS[(factor_names.length + i) % COLORS.length] }} />
+                    <span>{t}</span>
+                    <span className="sandbox-weight-pct">{pct.toFixed(1)}%</span>
+                  </div>
+                  <div className="sandbox-stepper-controls">
+                    <HoldButton className="sandbox-step-btn" onStep={() => updateWeight(t, Math.round((raw - wStep) * 1000) / 1000)}>-</HoldButton>
+                    <StepperInput
+                      value={raw}
+                      onChange={(v) => updateWeight(t, Math.max(0, Math.round(v * 1000) / 1000))}
+                      format={(v) => v.toFixed(2)}
+                      className=""
+                    />
+                    <HoldButton className="sandbox-step-btn" onStep={() => updateWeight(t, Math.round((raw + wStep) * 1000) / 1000)}>+</HoldButton>
+                    <button
+                      className={`sandbox-zero-btn ${raw === 0 ? "active" : ""}`}
+                      onClick={() => updateWeight(t, 0)}
+                    >0</button>
+                    <button
+                      className="sandbox-reset-one-btn"
+                      onClick={() => updateWeight(t, 1)}
+                      title="Reset to equal weight"
+                    >EQL</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {/* Snapshot */}
       {isModified && (
         <button
@@ -2092,7 +2194,7 @@ function SandboxTab({ data }) {
 
       <p className="backtest-disclaimer">
         What-if analysis using actual factor returns and regression residuals.
-        Adjust betas to explore counterfactual return scenarios.
+        Adjust betas or portfolio weights to explore counterfactual return scenarios.
       </p>
     </div>
   );
