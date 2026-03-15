@@ -19,7 +19,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { FactorInfoPopover } from "./FactorInfo";
-import { SummaryHedgePanel } from "./HedgePanel";
+import { FactorHedgePanel, SummaryHedgePanel } from "./HedgePanel";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
@@ -461,12 +461,18 @@ function VarianceChart({ data }) {
   const allKeys = [...factor_names, "Idiosyncratic"];
 
   function handleBarClick(factorKey, entry) {
-    if (!entry) return;
+    if (!entry || factorKey === "Idiosyncratic") return;
     const ticker = entry.ticker;
-    if (hedgeSelection?.ticker === ticker) {
+    if (hedgeSelection?.ticker === ticker && hedgeSelection?.factor === factorKey) {
       setHedgeSelection(null);
     } else {
-      setHedgeSelection({ ticker, summary: true });
+      setHedgeSelection({ ticker, factor: factorKey });
+    }
+  }
+
+  function handleShowSummary() {
+    if (hedgeSelection) {
+      setHedgeSelection({ ticker: hedgeSelection.ticker, summary: true });
     }
   }
 
@@ -486,7 +492,7 @@ function VarianceChart({ data }) {
             </FactorInfoPopover>
           ))}
         </div>
-        <span className="variance-click-hint">Click any stock bar to see its hedge strategy</span>
+        <span className="variance-click-hint">Click a factor segment to see hedge strategies</span>
       </div>
       <ResponsiveContainer width="100%" height={400}>
         <BarChart data={chartData}>
@@ -508,13 +514,22 @@ function VarianceChart({ data }) {
       </ResponsiveContainer>
 
       {/* Hedge strategy panel */}
+      {hedgeSelection && !hedgeSelection.summary && (
+        <FactorHedgePanel
+          ticker={hedgeSelection.ticker}
+          factor={hedgeSelection.factor}
+          beta={betas[hedgeSelection.ticker]?.[hedgeSelection.factor] ?? 0}
+          pctVariance={(variance_attr[hedgeSelection.ticker]?.[`pct_${hedgeSelection.factor}`] ?? 0) * 100}
+          onClose={() => setHedgeSelection(null)}
+          onShowSummary={handleShowSummary}
+        />
+      )}
       {hedgeSelection?.summary && (
         <SummaryHedgePanel
           ticker={hedgeSelection.ticker}
           betas={betas}
           varianceAttr={variance_attr}
           factorNames={factor_names}
-          colors={COLORS}
           onClose={() => setHedgeSelection(null)}
         />
       )}
