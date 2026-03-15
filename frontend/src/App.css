@@ -374,12 +374,18 @@ header h1 {
 
 .tabs {
   display: flex;
+  overflow-x: auto;
   border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tabs button {
-  flex: 1;
-  padding: 0.75rem;
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
   background: transparent;
   border: none;
   color: var(--muted);
@@ -388,6 +394,7 @@ header h1 {
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   border-bottom: 2px solid transparent;
+  white-space: nowrap;
 }
 
 .tabs button.active {

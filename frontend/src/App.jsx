@@ -1756,9 +1756,27 @@ function cumulativeFromReturns(returns) {
   return cum;
 }
 
+const PORTFOLIO_KEY = "__portfolio__";
+
+function buildPortfolioInfo(tickersData, factor_names) {
+  const tickerList = Object.values(tickersData);
+  const n = tickerList.length;
+  if (n === 0) return { betas: {}, residuals: [], alpha_monthly: 0 };
+  const avgBetas = {};
+  for (const f of factor_names) {
+    avgBetas[f] = tickerList.reduce((sum, t) => sum + (t.betas?.[f] || 0), 0) / n;
+  }
+  const resLen = tickerList[0].residuals?.length || 0;
+  const avgResiduals = Array.from({ length: resLen }, (_, i) =>
+    tickerList.reduce((sum, t) => sum + (t.residuals?.[i] || 0), 0) / n
+  );
+  const avgAlpha = tickerList.reduce((sum, t) => sum + (t.alpha_monthly || 0), 0) / n;
+  return { betas: avgBetas, residuals: avgResiduals, alpha_monthly: avgAlpha };
+}
+
 function SandboxTab({ data }) {
   const { sandbox, factor_names } = data;
-  const [selectedTicker, setSelectedTicker] = useState(null);
+  const [selectedTicker, setSelectedTicker] = useState(PORTFOLIO_KEY);
   const [betas, setBetas] = useState(null);
   const [alpha, setAlpha] = useState(0);
   const [snapshotDeltas, setSnapshotDeltas] = useState(null);
@@ -1772,11 +1790,14 @@ function SandboxTab({ data }) {
   }
 
   const tickers = Object.keys(sandbox.tickers);
-  const activeTicker = selectedTicker || tickers[0];
-  const tickerInfo = sandbox.tickers[activeTicker];
+  const activeTicker = selectedTicker || PORTFOLIO_KEY;
+  const isPortfolio = activeTicker === PORTFOLIO_KEY;
+  const tickerInfo = isPortfolio
+    ? buildPortfolioInfo(sandbox.tickers, factor_names)
+    : sandbox.tickers[activeTicker];
   const defaultBetas = tickerInfo?.betas || {};
 
-  const activeBetas = betas && selectedTicker ? betas : defaultBetas;
+  const activeBetas = betas ? betas : defaultBetas;
 
   const setActiveBetas = useCallback((newBetas) => {
     setBetas(newBetas);
@@ -1860,8 +1881,14 @@ function SandboxTab({ data }) {
     <div className="sandbox-tab">
       {/* Ticker selector */}
       <div className="rolling-controls">
-        <label className="rolling-label">Ticker</label>
+        <label className="rolling-label">View</label>
         <div className="rolling-ticker-pills">
+          <button
+            className={`rolling-pill ${activeTicker === PORTFOLIO_KEY ? "active" : ""}`}
+            onClick={() => handleTickerChange(PORTFOLIO_KEY)}
+          >
+            Portfolio
+          </button>
           {tickers.map((t) => (
             <button
               key={t}
