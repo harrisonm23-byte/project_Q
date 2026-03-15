@@ -1758,6 +1758,33 @@ function cumulativeFromReturns(returns) {
 
 const PORTFOLIO_KEY = "__portfolio__";
 
+function StepperInput({ value, onChange, format, parse, className }) {
+  const [editing, setEditing] = useState(false);
+  const [raw, setRaw] = useState("");
+
+  const handleFocus = () => {
+    setRaw(String(parse ? parse(value, "toRaw") : value));
+    setEditing(true);
+  };
+
+  const commit = () => {
+    const num = parseFloat(raw);
+    if (!isNaN(num)) onChange(parse ? parse(num, "fromRaw") : num);
+    setEditing(false);
+  };
+
+  return (
+    <input
+      className={`sandbox-beta-input ${className || ""}`}
+      value={editing ? raw : format(value)}
+      onFocus={handleFocus}
+      onChange={(e) => setRaw(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.target.blur(); } else if (e.key === "Escape") { setEditing(false); } }}
+    />
+  );
+}
+
 function buildPortfolioInfo(tickersData, factor_names) {
   const tickerList = Object.values(tickersData);
   const n = tickerList.length;
@@ -1977,9 +2004,12 @@ function SandboxTab({ data }) {
               </div>
               <div className="sandbox-stepper-controls">
                 <button className="sandbox-step-btn" onClick={() => updateBeta(f, Math.round((val - step) * 1000) / 1000)}>-</button>
-                <span className={`sandbox-beta-value ${val === 0 ? "" : val > 0 ? "pos" : "neg"}`}>
-                  {val >= 0 ? "+" : ""}{val.toFixed(3)}
-                </span>
+                <StepperInput
+                  value={val}
+                  onChange={(v) => updateBeta(f, Math.round(v * 1000) / 1000)}
+                  format={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(3)}`}
+                  className={val === 0 ? "" : val > 0 ? "pos" : "neg"}
+                />
                 <button className="sandbox-step-btn" onClick={() => updateBeta(f, Math.round((val + step) * 1000) / 1000)}>+</button>
                 <button className={`sandbox-zero-btn ${val === 0 ? "active" : ""}`} onClick={() => updateBeta(f, 0)}>0</button>
                 <button className="sandbox-reset-one-btn" onClick={() => updateBeta(f, def)} title="Reset to regression estimate">RST</button>
@@ -1996,9 +2026,13 @@ function SandboxTab({ data }) {
           </div>
           <div className="sandbox-stepper-controls">
             <button className="sandbox-step-btn" onClick={() => setAlpha(Math.round((alpha - 0.01) * 1000) / 1000)}>-</button>
-            <span className={`sandbox-beta-value ${alpha === 0 ? "" : "sandbox-alpha-val"}`}>
-              {alpha >= 0 ? "+" : ""}{(alpha * 100).toFixed(1)}%
-            </span>
+            <StepperInput
+              value={alpha}
+              onChange={(v) => setAlpha(Math.round(v / 100 * 1000) / 1000)}
+              format={(v) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%`}
+              parse={(v, dir) => dir === "toRaw" ? +(v * 100).toFixed(3) : v}
+              className={alpha === 0 ? "" : "sandbox-alpha-val"}
+            />
             <button className="sandbox-step-btn" onClick={() => setAlpha(Math.round((alpha + 0.01) * 1000) / 1000)}>+</button>
             <button className={`sandbox-zero-btn ${alpha === 0 ? "active" : ""}`} onClick={() => setAlpha(0)}>0</button>
           </div>

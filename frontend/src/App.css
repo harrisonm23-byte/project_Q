@@ -2156,3 +2156,42 @@ tr:last-child td {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+.sandbox-beta-input {
+  min-width: 56px;
+  width: 56px;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.15rem 0.2rem;
+  outline: none;
+  cursor: text;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sandbox-beta-input:hover {
+  border-color: var(--border);
+}
+
+.sandbox-beta-input:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.sandbox-beta-input.pos {
+  color: var(--green, #4ade80);
+}
+
+.sandbox-beta-input.neg {
+  color: var(--red, #f87171);
+}
+
+.sandbox-beta-input.sandbox-alpha-val {
+  color: #8b5cf6;
+}
