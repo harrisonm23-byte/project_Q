@@ -1206,7 +1206,12 @@ function StressTestTab({ data }) {
               tick={{ fontSize: 12, fontWeight: 600 }}
               width={50}
             />
-            <Tooltip formatter={(v) => [`${Number(v).toFixed(2)}%`, "Impact"]} />
+            <Tooltip
+              formatter={(v) => [`${Number(v).toFixed(2)}%`, "Impact"]}
+              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px" }}
+              itemStyle={{ color: "var(--text)" }}
+              labelStyle={{ color: "var(--muted)", fontSize: "0.75rem" }}
+            />
             <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
               {stockData.map((d, i) => (
                 <Cell key={i} fill={d.impact >= 0 ? "#10b981" : "#ef4444"} />
@@ -1503,6 +1508,9 @@ function RegimeTab({ data }) {
             <Tooltip
               formatter={(v, name, props) => [REGIME_LABELS[props.payload.regime], "Regime"]}
               labelFormatter={(label) => `Date: ${label}`}
+              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px" }}
+              itemStyle={{ color: "var(--text)" }}
+              labelStyle={{ color: "var(--muted)", fontSize: "0.75rem" }}
             />
             <Bar dataKey="value" radius={0}>
               {timelineData.map((d, i) => (
