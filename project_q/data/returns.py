@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+import os
 import pandas as pd
 import yfinance as yf
+
+# Redirect yfinance SQLite caches to /tmp so they are always writable,
+# including in read-only production deployments where the default
+# user-cache directory (e.g. ~/.cache) triggers OSError(5, I/O error).
+_yf_cache_dir = os.path.join("/tmp", "py-yfinance-cache")
+os.makedirs(_yf_cache_dir, exist_ok=True)
+yf.set_tz_cache_location(_yf_cache_dir)
 
 
 def fetch_stock_returns(
@@ -30,7 +38,13 @@ def fetch_stock_returns(
         Returns indexed by date with one column per ticker.
         Values are simple (not log) returns expressed as decimals.
     """
-    raw = yf.download(tickers, start=start, end=end, auto_adjust=True)
+    raw = yf.download(tickers, start=start, end=end, auto_adjust=True, progress=False)
+
+    if raw.empty:
+        raise ValueError(
+            f"No price data returned for tickers {tickers} over {start} to {end}. "
+            "Check that the ticker symbols are valid and the date range is correct."
+        )
 
     # yfinance returns MultiIndex columns when multiple tickers are passed
     if isinstance(raw.columns, pd.MultiIndex):
@@ -39,8 +53,22 @@ def fetch_stock_returns(
         prices = raw[["Close"]]
         prices.columns = tickers
 
+    # Drop any tickers that came back entirely empty
+    prices = prices.dropna(axis=1, how="all")
+    if prices.empty:
+        raise ValueError(
+            f"Price data for {tickers} was empty after download. "
+            "Verify ticker symbols are correct."
+        )
+
     if freq == "monthly":
         prices = prices.resample("ME").last()
 
-    returns = prices.pct_change().dropna()
+    returns = prices.pct_change().dropna(how="all")
+
+    # Normalize index to plain month-end timestamps (no freq metadata, no tz)
+    returns.index = returns.index.normalize()
+    if returns.index.tz is not None:
+        returns.index = returns.index.tz_localize(None)
+
     return returns

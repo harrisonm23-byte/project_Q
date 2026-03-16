@@ -68,14 +68,31 @@ class FactorModel:
 
     def _align_data(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Align returns and factors on their common date index."""
-        common_idx = self.returns.index.intersection(self.factors.index)
+        # Normalize both indices to plain month-end timestamps so subtle
+        # differences in dtype (datetime64[s] vs [ns]) or tz-awareness
+        # cannot produce a spurious empty intersection.
+        def _norm(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+            idx = idx.normalize()
+            if idx.tz is not None:
+                idx = idx.tz_localize(None)
+            return idx.astype("datetime64[us]")
+
+        ret = self.returns.copy()
+        ret.index = _norm(ret.index)
+        fac = self.factors.copy()
+        fac.index = _norm(fac.index)
+
+        common_idx = ret.index.intersection(fac.index)
         if len(common_idx) == 0:
+            ret_range = f"{ret.index.min().date()} – {ret.index.max().date()}" if len(ret.index) else "empty"
+            fac_range = f"{fac.index.min().date()} – {fac.index.max().date()}" if len(fac.index) else "empty"
             raise ValueError(
-                "No overlapping dates between returns and factors. "
-                "Check that both use the same frequency and date range."
+                f"No overlapping dates between returns ({ret_range}) "
+                f"and factors ({fac_range}). "
+                "Check that both cover the same date range and use monthly frequency."
             )
-        ret = self.returns.loc[common_idx]
-        fac = self.factors.loc[common_idx]
+        ret = ret.loc[common_idx]
+        fac = fac.loc[common_idx]
         return ret, fac
 
     def fit(self) -> None:

@@ -2,8 +2,17 @@
 
 from __future__ import annotations
 
+import os
 import traceback
 from pathlib import Path
+
+# Redirect yfinance caches to /tmp before any yfinance import so that
+# production environments with a read-only home directory don't trigger
+# OSError(5, 'Input/output error') which silently returns empty DataFrames.
+import yfinance as _yf
+_yf_cache = os.path.join("/tmp", "py-yfinance-cache")
+os.makedirs(_yf_cache, exist_ok=True)
+_yf.set_tz_cache_location(_yf_cache)
 
 import numpy as np
 import pandas as pd
