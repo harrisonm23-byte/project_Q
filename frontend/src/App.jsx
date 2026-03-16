@@ -491,7 +491,7 @@ function VarianceChart({ data }) {
         <span className="variance-click-hint">Click any stock bar to see its hedge strategy</span>
       </div>
       <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={chartData} barCategoryGap="45%" barSize={36}>
+        <BarChart data={chartData} barCategoryGap="25%" barSize={72}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="ticker" />
           <YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} />
@@ -845,7 +845,12 @@ function PortfolioTab({ data }) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" tickFormatter={(v) => `${v}%`} domain={[0, "auto"]} />
               <YAxis dataKey="ticker" type="category" width={55} tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(v) => `${v.toFixed(2)}%`} />
+              <Tooltip
+                formatter={(v) => `${v.toFixed(2)}%`}
+                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px" }}
+                itemStyle={{ color: "var(--text)" }}
+                labelStyle={{ color: "var(--muted)", fontSize: "0.75rem" }}
+              />
               <Bar dataKey="weight" name="Weight" radius={[0, 4, 4, 0]}>
                 {weightsData.map((_, i) => (
                   <Cell key={i} fill={PORTFOLIO_COLORS[selected]} />
