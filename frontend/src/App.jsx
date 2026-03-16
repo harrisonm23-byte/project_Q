@@ -491,7 +491,7 @@ function VarianceChart({ data }) {
         <span className="variance-click-hint">Click any stock bar to see its hedge strategy</span>
       </div>
       <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={chartData}>
+        <BarChart data={chartData} barCategoryGap="45%" barSize={36}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="ticker" />
           <YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} />
