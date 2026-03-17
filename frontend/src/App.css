@@ -2054,6 +2054,7 @@ tr:last-child td {
   justify-content: center;
   font-family: monospace;
   line-height: 1;
+  user-select: none;
 }
 
 .sandbox-step-btn:hover {
