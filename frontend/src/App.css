@@ -123,6 +123,115 @@ header h1 {
   box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2);
 }
 
+/* ── Ticker chip input ───────────────────────────────────────────────────── */
+
+.ticker-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  min-height: 38px;
+  cursor: text;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ticker-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2);
+}
+
+.ticker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.ticker-chip.valid {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.ticker-chip.unknown {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.ticker-chip-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.ticker-chip-remove:hover {
+  opacity: 1;
+}
+
+.ticker-input-inner {
+  position: relative;
+  flex: 1 1 120px;
+  min-width: 80px;
+}
+
+.ticker-text-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  width: 100%;
+  padding: 0.1rem 0.25rem;
+}
+
+.ticker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 140px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.ticker-dropdown-item {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.ticker-dropdown-item:hover {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+}
+
 /* ── Analysis Options ────────────────────────────────────────────────────── */
 
 .options-section {

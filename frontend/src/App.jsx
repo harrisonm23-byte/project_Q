@@ -23,12 +23,111 @@ import { SummaryHedgePanel } from "./HedgePanel";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
-const DEFAULT_TICKERS = "AAPL, MSFT, GOOGL, AMZN, JPM";
+const DEFAULT_TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "JPM"];
 
 const WINDOW_OPTIONS = [12, 24, 36, 48, 60];
 
+const TICKER_SUGGESTIONS = [
+  "AAPL","MSFT","GOOGL","GOOG","AMZN","NVDA","META","TSLA","BRK.B","BRK.A",
+  "JPM","JNJ","V","PG","UNH","HD","MA","XOM","ABBV","CVX","MRK","LLY","PEP",
+  "KO","AVGO","COST","MCD","TMO","ACN","BAC","WMT","DHR","CSCO","ABT","TXN",
+  "CRM","NEE","PM","RTX","HON","AMGN","IBM","QCOM","INTU","SPGI","ISRG","GS",
+  "BLK","CAT","BKNG","SBUX","AXP","DE","SCHW","LMT","SYK","GE","NOW","MDT",
+  "AMT","CI","CB","MDLZ","ZTS","ADP","GILD","SO","DUK","TGT","MO","MMC","PLD",
+  "TJX","ITW","REGN","VRTX","LRCX","KLAC","ADI","MU","AMAT","PANW","SNPS",
+  "CDNS","MRVL","CRWD","NFLX","UBER","LYFT","ABNB","DASH","SNAP","PINS","SPOT",
+  "SQ","PYPL","COIN","HOOD","RBLX","ROKU","ZM","DOCU","TWLO","NET","DDOG","MDB",
+  "SNOW","PLTR","RIVN","LCID","NIO","XPEV","LI","F","GM","STLA","TM","HMC",
+  "BA","BABA","JD","PDD","BIDU","TSM","ASML","SAP","NVO","AZN","GSK","RHHBY",
+  "SPY","QQQ","IWM","DIA","VTI","VOO","GLD","SLV","USO","TLT","HYG","LQD",
+  "XLF","XLK","XLE","XLV","XLI","XLY","XLP","XLU","XLRE","XLC","XLB","ARKK",
+  "VNQ","IEMG","EEM","EFA","VEA","VWO","BND","AGG","SHY","IEF","TIP",
+  "WFC","C","USB","PNC","TFC","COF","AIG","PRU","MET","ALL","AFL","HIG","LNC",
+  "MS","GS","BX","KKR","APO","ARES","BAM","OAK","DXCM","ILMN","BIIB","MRNA",
+  "PFE","ABBV","BMY","ALNY","VTRS","JAZZ","INCY","SGEN","EXAS","NTRA","FATE",
+  "CMG","YUM","DPZ","QSR","WEN","JACK","TXRH","DNUT","CAKE","RRGB",
+  "NCLH","CCL","RCL","MAR","HLT","H","IHG","WH","MGM","LVS","WYNN","CZR",
+  "DIS","CMCSA","NWSA","FOX","PARA","WBD","T","VZ","TMUS","CHTR",
+  "AMCR","PKG","IP","WRK","SON","SLGN","BALL","CCK","SEE","TDOC",
+  "CVNA","KMX","AN","LAD","GPI","SAH","PAG","ABG","ORLY","AZO","AAP",
+  "NKE","LULU","UAA","UA","PVH","RL","HBI","VFC","TPR","CPRI","G",
+  "INTC","AMD","ARM","QCOM","MCHP","ON","SWKS","QRVO","MTSI","ENTG",
+];
+
+function TickerInput({ value, onChange }) {
+  const [inputVal, setInputVal] = useState("");
+  const [open, setOpen] = useState(false);
+  const wrapRef = React.useRef(null);
+
+  const suggestions = useMemo(() => {
+    const q = inputVal.trim().toUpperCase();
+    if (!q) return [];
+    return TICKER_SUGGESTIONS
+      .filter(t => t.startsWith(q) && !value.includes(t))
+      .slice(0, 8);
+  }, [inputVal, value]);
+
+  function addTicker(raw) {
+    const t = raw.trim().toUpperCase();
+    if (!t || value.includes(t)) { setInputVal(""); return; }
+    onChange([...value, t]);
+    setInputVal("");
+  }
+
+  function removeTicker(t) {
+    onChange(value.filter(v => v !== t));
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter") { e.preventDefault(); if (inputVal.trim()) addTicker(inputVal); }
+    else if (e.key === "," || e.key === " ") { e.preventDefault(); if (inputVal.trim()) addTicker(inputVal); }
+    else if (e.key === "Backspace" && !inputVal && value.length > 0) removeTicker(value[value.length - 1]);
+    else if (e.key === "Escape") setOpen(false);
+  }
+
+  return (
+    <div className="ticker-input-wrap" ref={wrapRef}>
+      {value.map(t => (
+        <span key={t} className={`ticker-chip${TICKER_SUGGESTIONS.includes(t) ? " valid" : " unknown"}`}>
+          {t}
+          <button
+            type="button"
+            className="ticker-chip-remove"
+            onClick={() => removeTicker(t)}
+          >×</button>
+        </span>
+      ))}
+      <div className="ticker-input-inner">
+        <input
+          type="text"
+          className="ticker-text-input"
+          value={inputVal}
+          onChange={e => { setInputVal(e.target.value); setOpen(true); }}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder={value.length === 0 ? "Type a ticker and press Enter or comma…" : "Add ticker…"}
+        />
+        {open && suggestions.length > 0 && (
+          <div className="ticker-dropdown">
+            {suggestions.map(t => (
+              <div
+                key={t}
+                className="ticker-dropdown-item"
+                onMouseDown={() => { addTicker(t); setOpen(false); }}
+              >
+                {t}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const [tickers, setTickers] = useState(DEFAULT_TICKERS);
+  const [tickers, setTickers] = useState(DEFAULT_TICKERS); // array
   const [start, setStart] = useState("2019-01-01");
   const [end, setEnd] = useState("2025-12-31");
   const [rollingEnabled, setRollingEnabled] = useState(true);
@@ -44,10 +143,7 @@ export default function App() {
     setError(null);
     setData(null);
 
-    const tickerList = tickers
-      .split(",")
-      .map((t) => t.trim().toUpperCase())
-      .filter(Boolean);
+    const tickerList = tickers.filter(Boolean);
 
     try {
       const resp = await fetch("/api/analyze", {
@@ -84,13 +180,8 @@ export default function App() {
       {/* ── Input Form ─────────────────────────────── */}
       <form className="controls" onSubmit={handleAnalyze}>
         <div className="field field-tickers">
-          <label>Tickers (comma-separated)</label>
-          <input
-            type="text"
-            value={tickers}
-            onChange={(e) => setTickers(e.target.value)}
-            placeholder="AAPL, MSFT, GOOGL"
-          />
+          <label>Tickers</label>
+          <TickerInput value={tickers} onChange={setTickers} />
         </div>
 
         {/* ── Analysis Options ──────────────────────── */}
