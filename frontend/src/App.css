@@ -1,19 +1,15 @@
 /* ── Base ─────────────────────────────────────────────────────────────────── */
 
 :root {
-  --bg: #0a0e1a;
-  --surface: #0f1628;
-  --border: #1a2340;
-  --text: #c8d6e5;
-  --muted: #5a6a80;
-  --accent: #00d4aa;
-  --accent-hover: #00f0c0;
-  --accent-dim: rgba(0, 212, 170, 0.12);
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
   --green: #00e68a;
   --red: #ff4757;
-  --cyan: #22d3ee;
-  --amber: #fbbf24;
-  --panel: #111827;
 }
 
 * {
@@ -27,42 +23,31 @@ body {
     sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
 }
 
 .app {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 1.25rem 1.5rem;
+  padding: 2rem 1.5rem;
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
 
 header {
-  text-align: left;
-  margin-bottom: 1.25rem;
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.75rem;
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
 header h1 {
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--accent);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
   color: var(--muted);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 /* ── Controls / Form ─────────────────────────────────────────────────────── */
@@ -135,7 +120,7 @@ header h1 {
 .field input[type="date"]:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent-dim);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2);
 }
 
 /* ── Analysis Options ────────────────────────────────────────────────────── */
@@ -184,7 +169,7 @@ header h1 {
 
 .option-card.active {
   border-color: var(--accent);
-  background: var(--accent-dim);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .option-card.disabled {
@@ -208,7 +193,7 @@ header h1 {
 
 .option-card.active .option-icon {
   background: var(--accent);
-  color: var(--bg);
+  color: white;
 }
 
 .option-text {
@@ -258,7 +243,7 @@ header h1 {
 
 .submit-btn {
   background: var(--accent);
-  color: var(--bg);
+  color: white;
   border: none;
   padding: 0.55rem 1.5rem;
   border-radius: 4px;
@@ -345,7 +330,7 @@ header h1 {
 }
 
 .sort-active-row td {
-  background: var(--accent-dim);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .portfolio-pill-wrap {
@@ -379,61 +364,60 @@ header h1 {
 /* ── Error ────────────────────────────────────────────────────────────────── */
 
 .error {
-  background: rgba(255, 71, 87, 0.12);
+  background: rgba(239, 68, 68, 0.15);
   border: 1px solid var(--red);
   color: var(--red);
-  padding: 0.6rem 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  font-size: 0.82rem;
-  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
 }
 
 /* ── Tabs ─────────────────────────────────────────────────────────────────── */
 
 .results {
   background: var(--surface);
-  border-radius: 6px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   overflow: hidden;
 }
 
 .tabs {
   display: flex;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
   overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tabs button {
-  flex: 0 0 auto;
-  padding: 0.6rem 0.85rem;
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   border-bottom: 2px solid transparent;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   white-space: nowrap;
 }
 
 .tabs button.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
-  background: var(--surface);
 }
 
 .tabs button:hover:not(.active) {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.02);
 }
 
 .tab-content {
-  padding: 1.25rem;
+  padding: 1.5rem;
 }
 
 /* ── Table ────────────────────────────────────────────────────────────────── */
@@ -445,28 +429,25 @@ header h1 {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
 }
 
 th {
   text-align: left;
-  padding: 0.45rem 0.7rem;
+  padding: 0.6rem 0.8rem;
   border-bottom: 1px solid var(--border);
   color: var(--muted);
-  font-weight: 700;
-  font-size: 0.65rem;
+  font-weight: 600;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
 td {
-  padding: 0.4rem 0.7rem;
+  padding: 0.55rem 0.8rem;
   border-bottom: 1px solid var(--border);
   font-variant-numeric: tabular-nums;
-  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
-  font-size: 0.78rem;
 }
 
 tr:last-child td {
@@ -494,17 +475,16 @@ tr:last-child td {
 }
 
 .factor-info-trigger {
-  cursor: pointer;
+  cursor: default;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-bottom: 1px dashed var(--muted);
   padding-bottom: 1px;
   transition: color 0.15s;
 }
 
-.factor-info-trigger:hover {
-  color: var(--accent);
+.factor-info-icon:hover {
+  opacity: 0.8;
 }
 
 .factor-info-icon {
@@ -515,12 +495,13 @@ tr:last-child td {
   height: 14px;
   border-radius: 50%;
   background: var(--accent);
-  color: var(--bg);
+  color: white;
   font-size: 0.55rem;
   font-weight: 700;
   font-style: italic;
   flex-shrink: 0;
   line-height: 1;
+  cursor: pointer;
 }
 
 .factor-popover {
@@ -561,7 +542,7 @@ tr:last-child td {
 
 .factor-popover-badge {
   background: var(--accent);
-  color: var(--bg);
+  color: white;
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
   font-size: 0.7rem;
@@ -694,7 +675,7 @@ tr:last-child td {
 
 .hedge-panel-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -704,8 +685,78 @@ tr:last-child td {
 .hedge-panel-title {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   font-size: 0.85rem;
+}
+
+.hedge-factor-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.hedge-factor-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hedge-factor-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hedge-factor-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.hedge-factor-pill-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.hedge-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.hedge-summary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.hedge-summary-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .hedge-panel-ticker {
@@ -723,27 +774,6 @@ tr:last-child td {
   font-weight: 500;
 }
 
-.hedge-panel-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.hedge-summary-btn {
-  background: var(--accent);
-  color: var(--bg);
-  border: none;
-  padding: 0.3rem 0.7rem;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.hedge-summary-btn:hover {
-  background: var(--accent-hover);
-}
 
 .hedge-close-btn {
   background: none;
@@ -1116,6 +1146,106 @@ tr:last-child td {
   font-style: italic;
 }
 
+/* ── HBar (horizontal bar) ───────────────────────────────────────────────── */
+
+.hbar-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.5rem 0 0;
+}
+
+.hbar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.hbar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  cursor: default;
+}
+
+.hbar-track {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  background: var(--surface);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hbar-fill {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  min-width: 40px;
+  transition: width 0.4s ease, filter 0.15s;
+}
+
+.hbar-row:hover .hbar-fill {
+  filter: brightness(1.12);
+}
+
+.hbar-label {
+  padding: 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+.hbar-value {
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding-left: 0.2rem;
+  margin-bottom: 0.35rem;
+}
+
+.hbar-tooltip {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.hbar-axis {
+  position: relative;
+  height: 24px;
+  margin-top: 0.25rem;
+}
+
+.hbar-axis-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hbar-axis-line {
+  width: 1px;
+  height: 6px;
+  background: var(--border);
+}
+
+.hbar-axis-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
 /* ── Stress Test Tab ─────────────────────────────────────────────────────── */
 
 .stress-scenarios {
@@ -1211,11 +1341,11 @@ tr:last-child td {
 }
 
 .stress-port-impact.pos {
-  color: var(--green);
+  color: #10b981;
 }
 
 .stress-port-impact.neg {
-  color: var(--red);
+  color: #ef4444;
 }
 
 /* ── Rolling Exposures Controls ──────────────────────────────────────────── */
@@ -1262,8 +1392,7 @@ tr:last-child td {
 .rolling-pill.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg);
-  font-weight: 700;
+  color: white;
 }
 
 /* ── Correlation Heatmap ─────────────────────────────────────────────────── */
@@ -1361,7 +1490,7 @@ tr:last-child td {
   width: 80px;
   height: 10px;
   border-radius: 3px;
-  background: linear-gradient(to right, rgba(0, 212, 170, 0.7), rgba(0, 212, 170, 0));
+  background: linear-gradient(to right, rgba(99, 102, 241, 0.7), rgba(99, 102, 241, 0));
 }
 
 .heatmap-row-label-right {
@@ -1377,7 +1506,7 @@ tr:last-child td {
 }
 
 .heatmap-legend-bar-pos {
-  background: linear-gradient(to right, rgba(0, 230, 138, 0), rgba(0, 230, 138, 0.7));
+  background: linear-gradient(to right, rgba(16, 185, 129, 0), rgba(16, 185, 129, 0.7));
 }
 
 /* ── Recharts overrides ──────────────────────────────────────────────────── */
@@ -1475,7 +1604,7 @@ tr:last-child td {
 }
 
 .alpha-badge-sig {
-  background: rgba(0, 230, 138, 0.15);
+  background: rgba(16, 185, 129, 0.15);
   color: var(--green);
 }
 
@@ -1750,7 +1879,11 @@ tr:last-child td {
   transition: width 0.3s ease;
 }
 
-/* ── Factor Sandbox Tab ─────────────────────────────────────────────────── */
+/* ── Factor Sandbox Tab ──────────────────────────────────────────────────── */
+
+.sandbox-tab {
+  padding: 0;
+}
 
 .sandbox-chart-wrap {
   background: var(--bg);
@@ -1769,7 +1902,7 @@ tr:last-child td {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  background: var(--accent-dim);
+  background: rgba(99, 102, 241, 0.15);
   border: 1px solid var(--accent);
   border-radius: 4px;
   padding: 0.15rem 0.5rem;
@@ -1910,13 +2043,13 @@ tr:last-child td {
 }
 
 .sandbox-beta-value {
-  width: 64px;
+  min-width: 56px;
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   font-family: monospace;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .sandbox-alpha-val {
@@ -1924,43 +2057,40 @@ tr:last-child td {
 }
 
 .sandbox-zero-btn {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--muted);
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: monospace;
-  margin-left: 0.2rem;
 }
 
 .sandbox-zero-btn.active {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--border);
+  cursor: default;
 }
 
 .sandbox-reset-one-btn {
-  width: 28px;
-  height: 28px;
+  height: 24px;
+  padding: 0 0.4rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--muted);
-  font-size: 0.5rem;
+  font-size: 0.62rem;
   font-weight: 700;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-family: monospace;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.04em;
 }
 
 .sandbox-reset-one-btn:hover {
@@ -1970,36 +2100,34 @@ tr:last-child td {
 
 .sandbox-snapshot-btn {
   width: 100%;
-  padding: 0.65rem;
-  background: var(--accent);
+  padding: 0.6rem;
+  margin-bottom: 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
   border: 1px solid var(--accent);
-  border-radius: 4px;
-  color: var(--bg);
-  font-size: 0.75rem;
-  font-weight: 700;
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   transition: all 0.15s;
-  margin-bottom: 0.75rem;
 }
 
 .sandbox-snapshot-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: rgba(99, 102, 241, 0.2);
 }
 
 .sandbox-snapshot-taken {
-  background: var(--accent-dim);
+  background: rgba(99, 102, 241, 0.15);
   color: var(--accent);
   cursor: default;
 }
 
 .sandbox-deltas {
   padding: 0.75rem;
-  background: var(--accent-dim);
-  border: 1px solid rgba(0, 212, 170, 0.2);
-  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
   margin-bottom: 0.75rem;
 }
 
@@ -2021,7 +2149,7 @@ tr:last-child td {
 
 .sandbox-delta-chip {
   padding: 0.35rem 0.6rem;
-  background: rgba(0, 212, 170, 0.1);
+  background: rgba(99, 102, 241, 0.1);
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -2037,4 +2165,88 @@ tr:last-child td {
   font-size: 0.78rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.sandbox-beta-input {
+  min-width: 56px;
+  width: 56px;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.15rem 0.2rem;
+  outline: none;
+  cursor: text;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sandbox-beta-input:hover {
+  border-color: var(--border);
+}
+
+.sandbox-beta-input:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.sandbox-beta-input.pos {
+  color: var(--green, #4ade80);
+}
+
+.sandbox-beta-input.neg {
+  color: var(--red, #f87171);
+}
+
+.sandbox-beta-input.sandbox-alpha-val {
+  color: #8b5cf6;
+}
+
+.sandbox-spy-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  color: #6b7280;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  margin-left: auto;
+  opacity: 0.5;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.sandbox-spy-toggle.active {
+  opacity: 1;
+  border-color: #6b7280;
+}
+
+.sandbox-legend-spy {
+  display: inline-block;
+  width: 16px;
+  border-top: 1.5px dashed #6b7280;
+}
+
+.sandbox-controls-hint {
+  font-size: 0.65rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-left: 0.5rem;
+}
+
+.sandbox-weight-pct {
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+  margin-left: 0.35rem;
+  font-weight: 600;
 }
