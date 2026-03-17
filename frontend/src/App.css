@@ -1797,7 +1797,8 @@ tr:last-child td {
 }
 
 .pair-long {
-  color: var(--text);
+  color: var(--green);
+  opacity: 0.6;
 }
 
 .pair-separator {
@@ -1805,7 +1806,8 @@ tr:last-child td {
 }
 
 .pair-short {
-  color: var(--text);
+  color: var(--red);
+  opacity: 0.6;
 }
 
 .pair-edge-badge {
