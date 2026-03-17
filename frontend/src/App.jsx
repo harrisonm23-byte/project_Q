@@ -1664,9 +1664,11 @@ function PairsTab({ data }) {
               >
                 <div className="pair-card-top">
                   <div className="pair-card-names">
-                    <span className="pair-long">Long {p.long}</span>
+                    <span className="pair-long">Long</span>
+                    <span>{p.long}</span>
                     <span className="pair-separator">/</span>
-                    <span className="pair-short">Short {p.short}</span>
+                    <span className="pair-short">Short</span>
+                    <span>{p.short}</span>
                   </div>
                   <span className="pair-sharpe">
                     Sharpe <span className={p.spread_sharpe >= 0 ? "pos" : "neg"}>{p.spread_sharpe.toFixed(2)}</span>
