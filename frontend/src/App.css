@@ -1770,10 +1770,21 @@ tr:last-child td {
 
 .pair-card-header {
   display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+}
+
+.pair-card-top {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pair-card-sub {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -1786,7 +1797,7 @@ tr:last-child td {
 }
 
 .pair-long {
-  color: var(--green);
+  color: var(--text);
 }
 
 .pair-separator {
@@ -1794,13 +1805,7 @@ tr:last-child td {
 }
 
 .pair-short {
-  color: var(--red);
-}
-
-.pair-card-badges {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  color: var(--text);
 }
 
 .pair-edge-badge {
@@ -1815,8 +1820,20 @@ tr:last-child td {
 
 .pair-sharpe {
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.pair-sharpe .pos {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.pair-sharpe .neg {
+  color: var(--red);
+  font-weight: 700;
 }
 
 .pair-card-stats {

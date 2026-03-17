@@ -1662,20 +1662,22 @@ function PairsTab({ data }) {
                 onClick={() => setExpandedPair(expanded ? null : key)}
                 style={{ cursor: "pointer" }}
               >
-                <div className="pair-card-names">
-                  <span className="pair-long">Long {p.long}</span>
-                  <span className="pair-separator">/</span>
-                  <span className="pair-short">Short {p.short}</span>
+                <div className="pair-card-top">
+                  <div className="pair-card-names">
+                    <span className="pair-long">Long {p.long}</span>
+                    <span className="pair-separator">/</span>
+                    <span className="pair-short">Short {p.short}</span>
+                  </div>
+                  <span className="pair-sharpe">
+                    Sharpe <span className={p.spread_sharpe >= 0 ? "pos" : "neg"}>{p.spread_sharpe.toFixed(2)}</span>
+                  </span>
                 </div>
-                <div className="pair-card-badges">
+                <div className="pair-card-sub">
                   <span
                     className="pair-edge-badge"
                     style={{ background: EDGE_COLORS[p.edge_type] + "22", color: EDGE_COLORS[p.edge_type], borderColor: EDGE_COLORS[p.edge_type] }}
                   >
                     {EDGE_LABELS[p.edge_type]}
-                  </span>
-                  <span className={`pair-sharpe ${p.spread_sharpe >= 0 ? "pos" : "neg"}`}>
-                    Sharpe {p.spread_sharpe.toFixed(2)}
                   </span>
                 </div>
               </div>
