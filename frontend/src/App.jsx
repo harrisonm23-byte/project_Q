@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -19,7 +19,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { FactorInfoPopover } from "./FactorInfo";
-import { SummaryHedgePanel } from "./HedgePanel";
+import { FactorHedgePanel, SummaryHedgePanel } from "./HedgePanel";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
@@ -30,7 +30,7 @@ const WINDOW_OPTIONS = [12, 24, 36, 48, 60];
 export default function App() {
   const [tickers, setTickers] = useState(DEFAULT_TICKERS);
   const [start, setStart] = useState("2019-01-01");
-  const [end, setEnd] = useState("2025-12-31");
+  const [end, setEnd] = useState("2024-12-31");
   const [rollingEnabled, setRollingEnabled] = useState(true);
   const [rollingWindow, setRollingWindow] = useState(36);
   const [loading, setLoading] = useState(false);
@@ -397,51 +397,26 @@ function BetasChart({ data }) {
 
 /* ── R-Squared Chart ────────────────────────────────────────────────────── */
 
-const HBAR_PALETTE = ["#7c8574", "#c4965a", "#6b8cae", "#b8764e", "#8e7cc3"];
-
 function RSquaredChart({ data }) {
   const { r_squared, tickers } = data;
-  const [hovered, setHovered] = useState(null);
-  const sorted = tickers
+  const chartData = tickers
     .map((t) => ({ ticker: t, R2: r_squared[t].R_squared }))
-    .sort((a, b) => b.R2 - a.R2);
-
-  const axisTicks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+    .sort((a, b) => a.R2 - b.R2);
 
   return (
-    <div className="hbar-chart-wrap">
-      <div className="hbar-list">
-        {sorted.map(({ ticker, R2 }, i) => (
-          <div
-            key={ticker}
-            className="hbar-row"
-            onMouseEnter={() => setHovered(ticker)}
-            onMouseLeave={() => setHovered(null)}
-          >
-            <div className="hbar-track">
-              <div
-                className="hbar-fill"
-                style={{ width: `${R2 * 100}%`, background: HBAR_PALETTE[i % HBAR_PALETTE.length] }}
-              >
-                <span className="hbar-label">{ticker}</span>
-              </div>
-              {hovered === ticker && (
-                <span className="hbar-tooltip">{R2.toFixed(4)}</span>
-              )}
-            </div>
-            <div className="hbar-value">{R2.toFixed(4)}</div>
-          </div>
-        ))}
-      </div>
-      <div className="hbar-axis">
-        {axisTicks.map((t) => (
-          <div key={t} className="hbar-axis-tick" style={{ left: `${t * 100}%` }}>
-            <div className="hbar-axis-line" />
-            <span className="hbar-axis-label">{t.toFixed(1)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={chartData} layout="vertical">
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis type="number" domain={[0, 1]} />
+        <YAxis dataKey="ticker" type="category" width={60} />
+        <Tooltip formatter={(v) => v.toFixed(4)} />
+        <Bar dataKey="R2" name="R²">
+          {chartData.map((_, i) => (
+            <Cell key={i} fill={COLORS[0]} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -463,12 +438,19 @@ function VarianceChart({ data }) {
   const allKeys = [...factor_names, "Idiosyncratic"];
 
   function handleBarClick(factorKey, entry) {
-    if (!entry) return;
+    if (!entry || factorKey === "Idiosyncratic") return;
     const ticker = entry.ticker;
-    if (hedgeSelection?.ticker === ticker) {
+    // Toggle off if clicking the same segment
+    if (hedgeSelection?.ticker === ticker && hedgeSelection?.factor === factorKey) {
       setHedgeSelection(null);
     } else {
-      setHedgeSelection({ ticker, summary: true });
+      setHedgeSelection({ ticker, factor: factorKey });
+    }
+  }
+
+  function handleShowSummary() {
+    if (hedgeSelection) {
+      setHedgeSelection({ ticker: hedgeSelection.ticker, summary: true });
     }
   }
 
@@ -488,10 +470,10 @@ function VarianceChart({ data }) {
             </FactorInfoPopover>
           ))}
         </div>
-        <span className="variance-click-hint">Click any stock bar to see its hedge strategy</span>
+        <span className="variance-click-hint">Click a factor segment to see hedge strategies</span>
       </div>
       <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={chartData} barCategoryGap="25%" barSize={72}>
+        <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="ticker" />
           <YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} />
@@ -510,13 +492,22 @@ function VarianceChart({ data }) {
       </ResponsiveContainer>
 
       {/* Hedge strategy panel */}
+      {hedgeSelection && !hedgeSelection.summary && (
+        <FactorHedgePanel
+          ticker={hedgeSelection.ticker}
+          factor={hedgeSelection.factor}
+          beta={betas[hedgeSelection.ticker]?.[hedgeSelection.factor] ?? 0}
+          pctVariance={(variance_attr[hedgeSelection.ticker]?.[`pct_${hedgeSelection.factor}`] ?? 0) * 100}
+          onClose={() => setHedgeSelection(null)}
+          onShowSummary={handleShowSummary}
+        />
+      )}
       {hedgeSelection?.summary && (
         <SummaryHedgePanel
           ticker={hedgeSelection.ticker}
           betas={betas}
           varianceAttr={variance_attr}
           factorNames={factor_names}
-          colors={COLORS}
           onClose={() => setHedgeSelection(null)}
         />
       )}
@@ -534,7 +525,7 @@ function corrColor(val) {
     return `rgba(16, 185, 129, ${intensity * 0.7})`;
   } else {
     const intensity = -clamped;
-    return `rgba(99, 102, 241, ${intensity * 0.7})`;
+    return `rgba(0, 212, 170, ${intensity * 0.7})`;
   }
 }
 
@@ -632,9 +623,9 @@ function CorrelationHeatmap({ data }) {
 /* ── Portfolio Construction Tab ─────────────────────────────────────────── */
 
 const PORTFOLIO_COLORS = {
-  min_variance: "#10b981",
-  max_sharpe: "#6366f1",
-  equal_weight: "#f59e0b",
+  min_variance: "#00e68a",
+  max_sharpe: "#00d4aa",
+  equal_weight: "#fbbf24",
 };
 
 const PORTFOLIO_LABELS = {
@@ -845,12 +836,7 @@ function PortfolioTab({ data }) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" tickFormatter={(v) => `${v}%`} domain={[0, "auto"]} />
               <YAxis dataKey="ticker" type="category" width={55} tick={{ fontSize: 12 }} />
-              <Tooltip
-                formatter={(v) => `${v.toFixed(2)}%`}
-                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px" }}
-                itemStyle={{ color: "var(--text)" }}
-                labelStyle={{ color: "var(--muted)", fontSize: "0.75rem" }}
-              />
+              <Tooltip formatter={(v) => `${v.toFixed(2)}%`} />
               <Bar dataKey="weight" name="Weight" radius={[0, 4, 4, 0]}>
                 {weightsData.map((_, i) => (
                   <Cell key={i} fill={PORTFOLIO_COLORS[selected]} />
@@ -907,9 +893,9 @@ function PortfolioTab({ data }) {
 /* ── Backtest Tab ──────────────────────────────────────────────────────── */
 
 const STRATEGY_COLORS = {
-  max_sharpe: "#6366f1",
-  min_variance: "#10b981",
-  equal_weight: "#f59e0b",
+  max_sharpe: "#00d4aa",
+  min_variance: "#00e68a",
+  equal_weight: "#fbbf24",
 };
 
 const STRATEGY_LABELS = {
@@ -1104,7 +1090,7 @@ function BacktestTab({ data }) {
 /* ── Stress Test Tab ───────────────────────────────────────────────────── */
 
 const SCENARIO_COLORS = [
-  "#ef4444", "#f59e0b", "#6366f1", "#10b981", "#3b82f6",
+  "#ff4757", "#fbbf24", "#00d4aa", "#00e68a", "#22d3ee",
 ];
 
 function StressTestTab({ data }) {
@@ -1206,15 +1192,10 @@ function StressTestTab({ data }) {
               tick={{ fontSize: 12, fontWeight: 600 }}
               width={50}
             />
-            <Tooltip
-              formatter={(v) => [`${Number(v).toFixed(2)}%`, "Impact"]}
-              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px" }}
-              itemStyle={{ color: "var(--text)" }}
-              labelStyle={{ color: "var(--muted)", fontSize: "0.75rem" }}
-            />
+            <Tooltip formatter={(v) => [`${Number(v).toFixed(2)}%`, "Impact"]} />
             <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
               {stockData.map((d, i) => (
-                <Cell key={i} fill={d.impact >= 0 ? "#10b981" : "#ef4444"} />
+                <Cell key={i} fill={d.impact >= 0 ? "#00e68a" : "#ff4757"} />
               ))}
             </Bar>
           </BarChart>
@@ -1432,7 +1413,7 @@ function AlphaTab({ data }) {
 
 /* ── Regime Analysis Tab ──────────────────────────────────────────────── */
 
-const REGIME_COLORS = { bull: "#10b981", recovery: "#f59e0b", bear: "#ef4444" };
+const REGIME_COLORS = { bull: "#00e68a", recovery: "#fbbf24", bear: "#ff4757" };
 const REGIME_LABELS = { bull: "Bull", recovery: "Recovery", bear: "Bear" };
 
 function RegimeTab({ data }) {
@@ -1508,9 +1489,6 @@ function RegimeTab({ data }) {
             <Tooltip
               formatter={(v, name, props) => [REGIME_LABELS[props.payload.regime], "Regime"]}
               labelFormatter={(label) => `Date: ${label}`}
-              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px" }}
-              itemStyle={{ color: "var(--text)" }}
-              labelStyle={{ color: "var(--muted)", fontSize: "0.75rem" }}
             />
             <Bar dataKey="value" radius={0}>
               {timelineData.map((d, i) => (
@@ -1627,7 +1605,7 @@ function RegimeTab({ data }) {
 
 /* ── Pairs / Spread Decomposition Tab ─────────────────────────────────── */
 
-const EDGE_COLORS = { alpha: "#10b981", factor_bet: "#f59e0b", neutral: "#64748b" };
+const EDGE_COLORS = { alpha: "#00e68a", factor_bet: "#fbbf24", neutral: "#5a6a80" };
 const EDGE_LABELS = { alpha: "Alpha Edge", factor_bet: "Factor Bet", neutral: "Neutral" };
 
 function PairsTab({ data }) {
@@ -1769,110 +1747,12 @@ function cumulativeFromReturns(returns) {
   return cum;
 }
 
-const PORTFOLIO_KEY = "__portfolio__";
-
-function HoldButton({ onStep, className, children }) {
-  const timerRef = React.useRef(null);
-  const onStepRef = React.useRef(onStep);
-  React.useEffect(() => { onStepRef.current = onStep; }, [onStep]);
-
-  const stop = React.useCallback(() => {
-    clearTimeout(timerRef.current);
-    clearInterval(timerRef.current);
-  }, []);
-
-  const start = React.useCallback(() => {
-    onStepRef.current();
-    timerRef.current = setTimeout(() => {
-      timerRef.current = setInterval(() => onStepRef.current(), 60);
-    }, 350);
-  }, []);
-
-  return (
-    <button
-      className={className}
-      onMouseDown={start}
-      onMouseUp={stop}
-      onMouseLeave={stop}
-      onTouchStart={(e) => { e.preventDefault(); start(); }}
-      onTouchEnd={stop}
-    >
-      {children}
-    </button>
-  );
-}
-
-function StepperInput({ value, onChange, format, parse, className }) {
-  const [editing, setEditing] = useState(false);
-  const [raw, setRaw] = useState("");
-
-  const handleFocus = () => {
-    setRaw(String(parse ? parse(value, "toRaw") : value));
-    setEditing(true);
-  };
-
-  const commit = () => {
-    const num = parseFloat(raw);
-    if (!isNaN(num)) onChange(parse ? parse(num, "fromRaw") : num);
-    setEditing(false);
-  };
-
-  return (
-    <input
-      className={`sandbox-beta-input ${className || ""}`}
-      value={editing ? raw : format(value)}
-      onFocus={handleFocus}
-      onChange={(e) => setRaw(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => { if (e.key === "Enter") { e.target.blur(); } else if (e.key === "Escape") { setEditing(false); } }}
-    />
-  );
-}
-
-function buildPortfolioInfo(tickersData, factor_names, effectiveWeights) {
-  const tickerKeys = Object.keys(tickersData);
-  if (tickerKeys.length === 0) return { betas: {}, residuals: [], alpha_monthly: 0 };
-  const avgBetas = {};
-  for (const f of factor_names) {
-    avgBetas[f] = tickerKeys.reduce((sum, t) => sum + (effectiveWeights[t] || 0) * (tickersData[t]?.betas?.[f] || 0), 0);
-  }
-  const resLen = tickersData[tickerKeys[0]]?.residuals?.length || 0;
-  const avgResiduals = Array.from({ length: resLen }, (_, i) =>
-    tickerKeys.reduce((sum, t) => sum + (effectiveWeights[t] || 0) * (tickersData[t]?.residuals?.[i] || 0), 0)
-  );
-  const avgAlpha = tickerKeys.reduce((sum, t) => sum + (effectiveWeights[t] || 0) * (tickersData[t]?.alpha_monthly || 0), 0);
-  return { betas: avgBetas, residuals: avgResiduals, alpha_monthly: avgAlpha };
-}
-
-function normalizeWeights(rawWeights) {
-  const total = Object.values(rawWeights).reduce((s, v) => s + Math.max(0, v), 0);
-  if (total === 0) return Object.fromEntries(Object.keys(rawWeights).map(k => [k, 0]));
-  return Object.fromEntries(Object.entries(rawWeights).map(([k, v]) => [k, Math.max(0, v) / total]));
-}
-
 function SandboxTab({ data }) {
-  const { sandbox, factor_names, r_squared, tickers: allTickers } = data;
-
-  // Match the same color assignment as the R-Squared HBar chart (sorted by R² desc)
-  const tickerColorMap = useMemo(() => {
-    if (!r_squared || !allTickers) return {};
-    const sorted = [...allTickers].sort((a, b) => (r_squared[b]?.R_squared || 0) - (r_squared[a]?.R_squared || 0));
-    return Object.fromEntries(sorted.map((t, i) => [t, HBAR_PALETTE[i % HBAR_PALETTE.length]]));
-  }, [r_squared, allTickers]);
-  const [selectedTicker, setSelectedTicker] = useState(PORTFOLIO_KEY);
+  const { sandbox, factor_names } = data;
+  const [selectedTicker, setSelectedTicker] = useState(null);
   const [betas, setBetas] = useState(null);
   const [alpha, setAlpha] = useState(0);
   const [snapshotDeltas, setSnapshotDeltas] = useState(null);
-  const [showSpy, setShowSpy] = useState(true);
-
-  const tickers = useMemo(() => sandbox ? Object.keys(sandbox.tickers) : [], [sandbox]);
-
-  const initWeights = useMemo(
-    () => Object.fromEntries(tickers.map(t => [t, 1])),
-    [tickers]
-  );
-  const [weights, setWeights] = useState(() => Object.fromEntries(tickers.map(t => [t, 1])));
-  const effectiveWeights = useMemo(() => normalizeWeights(weights), [weights]);
 
   if (!sandbox) {
     return (
@@ -1882,18 +1762,13 @@ function SandboxTab({ data }) {
     );
   }
 
-  const activeTicker = selectedTicker || PORTFOLIO_KEY;
-  const isPortfolio = activeTicker === PORTFOLIO_KEY;
-
-  const tickerInfo = useMemo(() =>
-    isPortfolio
-      ? buildPortfolioInfo(sandbox.tickers, factor_names, effectiveWeights)
-      : sandbox.tickers[activeTicker],
-    [isPortfolio, sandbox.tickers, factor_names, effectiveWeights, activeTicker]
-  );
-
+  const tickers = Object.keys(sandbox.tickers);
+  const activeTicker = selectedTicker || tickers[0];
+  const tickerInfo = sandbox.tickers[activeTicker];
   const defaultBetas = tickerInfo?.betas || {};
-  const activeBetas = betas ? betas : defaultBetas;
+
+  // Initialize betas from ticker data when ticker changes
+  const activeBetas = betas && selectedTicker ? betas : defaultBetas;
 
   const setActiveBetas = useCallback((newBetas) => {
     setBetas(newBetas);
@@ -1911,59 +1786,29 @@ function SandboxTab({ data }) {
     setActiveBetas({ ...activeBetas, [factor]: value });
   }, [activeBetas, setActiveBetas]);
 
-  const updateWeight = useCallback((ticker, value) => {
-    setWeights(prev => ({ ...prev, [ticker]: Math.max(0, value) }));
-    setBetas(null);
-    setSnapshotDeltas(null);
-  }, []);
-
-  const resetAll = () => {
-    setBetas(null);
-    setAlpha(0);
-    setSnapshotDeltas(null);
-    if (isPortfolio) setWeights(initWeights);
-  };
-
-  const handleSnapshot = () => {
-    const deltas = {};
-    for (const f of factor_names) {
-      const delta = (activeBetas[f] || 0) - (defaultBetas[f] || 0);
-      if (Math.abs(delta) > 0.001) deltas[f] = delta;
-    }
-    if (alpha !== 0) deltas.alpha = alpha;
-    setSnapshotDeltas(deltas);
-  };
-
-  const step = 0.05;
-  const wStep = 0.05;
-
-  const spyCum = useMemo(() => {
-    const raw = sandbox.spy_returns || [];
-    if (raw.every(v => v === 0)) return null;
-    return cumulativeFromReturns(raw);
-  }, [sandbox.spy_returns]);
-
+  // Original returns (from regression betas)
   const originalReturns = useMemo(() =>
     computeSandboxReturns(sandbox.factor_returns, factor_names, tickerInfo?.residuals || [], defaultBetas, tickerInfo?.alpha_monthly || 0),
     [sandbox, factor_names, tickerInfo, defaultBetas]
   );
   const originalCum = useMemo(() => cumulativeFromReturns(originalReturns), [originalReturns]);
 
+  // Sandbox returns (with user-modified betas/alpha)
   const sandboxReturns = useMemo(() =>
     computeSandboxReturns(sandbox.factor_returns, factor_names, tickerInfo?.residuals || [], activeBetas, (tickerInfo?.alpha_monthly || 0) + alpha / 12),
     [sandbox, factor_names, tickerInfo, activeBetas, alpha]
   );
   const sandboxCum = useMemo(() => cumulativeFromReturns(sandboxReturns), [sandboxReturns]);
 
-  const isModified = JSON.stringify(activeBetas) !== JSON.stringify(defaultBetas) || alpha !== 0 ||
-    (isPortfolio && JSON.stringify(weights) !== JSON.stringify(initWeights));
+  const isModified = JSON.stringify(activeBetas) !== JSON.stringify(defaultBetas) || alpha !== 0;
 
+  // Chart rendering via SVG
   const chartW = 680, chartH = 260;
   const marginL = 50, marginR = 16, marginT = 16, marginB = 30;
   const plotW = chartW - marginL - marginR;
   const plotH = chartH - marginT - marginB;
 
-  const allValues = [...originalCum, ...sandboxCum, ...(showSpy && spyCum ? spyCum : [])];
+  const allValues = [...originalCum, ...sandboxCum];
   const yMinRaw = Math.min(...allValues);
   const yMaxRaw = Math.max(...allValues);
   const yRange = yMaxRaw - yMinRaw || 0.1;
@@ -1978,29 +1823,43 @@ function SandboxTab({ data }) {
 
   const originalPath = pathFromData(originalCum);
   const sandboxPath = pathFromData(sandboxCum);
-  const spyPath = spyCum ? pathFromData(spyCum) : null;
 
+  // Y-axis ticks
   const yTicks = [];
   for (let i = 0; i <= 5; i++) yTicks.push(yMin + (i / 5) * (yMax - yMin));
 
+  // X-axis date labels
   const dates = sandbox.dates || [];
   const xLabels = [];
   for (let i = 0; i < dates.length; i += 12) {
     xLabels.push({ idx: i + 1, label: dates[i]?.slice(0, 7) || "" });
   }
+  if (dates.length > 0) xLabels.push({ idx: dates.length, label: dates[dates.length - 1]?.slice(0, 7) || "" });
+
+  const resetAll = () => {
+    setBetas(null);
+    setAlpha(0);
+    setSnapshotDeltas(null);
+  };
+
+  const handleSnapshot = () => {
+    const deltas = {};
+    for (const f of factor_names) {
+      const delta = (activeBetas[f] || 0) - (defaultBetas[f] || 0);
+      if (Math.abs(delta) > 0.001) deltas[f] = delta;
+    }
+    if (alpha !== 0) deltas.alpha = alpha;
+    setSnapshotDeltas(deltas);
+  };
+
+  const step = 0.05;
 
   return (
     <div className="sandbox-tab">
       {/* Ticker selector */}
       <div className="rolling-controls">
-        <label className="rolling-label">View</label>
+        <label className="rolling-label">Ticker</label>
         <div className="rolling-ticker-pills">
-          <button
-            className={`rolling-pill ${activeTicker === PORTFOLIO_KEY ? "active" : ""}`}
-            onClick={() => handleTickerChange(PORTFOLIO_KEY)}
-          >
-            Portfolio
-          </button>
           {tickers.map((t) => (
             <button
               key={t}
@@ -2024,6 +1883,7 @@ function SandboxTab({ data }) {
           <div className="sandbox-modified-badge">Modified</div>
         )}
         <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} className="sandbox-svg">
+          {/* Grid lines */}
           {yTicks.map((val, i) => (
             <g key={i}>
               <line x1={marginL} y1={toY(val)} x2={chartW - marginR} y2={toY(val)}
@@ -2034,32 +1894,23 @@ function SandboxTab({ data }) {
               </text>
             </g>
           ))}
+          {/* X labels */}
           {xLabels.map(({ idx, label }) => (
             <text key={idx} x={toX(idx)} y={chartH - 4} fill="var(--muted)" fontSize={9}
               fontFamily="monospace" textAnchor="middle">
               {label}
             </text>
           ))}
-          {/* S&P 500 benchmark */}
-          {showSpy && spyPath && (
-            <>
-              <path d={spyPath} fill="none" stroke="#6b7280" strokeWidth={1.2}
-                strokeDasharray="5,3" opacity={0.65} />
-              <text x={toX(spyCum.length - 1) + 4} y={toY(spyCum[spyCum.length - 1]) + 4}
-                fill="#6b7280" fontSize={9} fontFamily="monospace" opacity={0.8}>
-                S&P {((spyCum[spyCum.length - 1] - 1) * 100).toFixed(1)}%
-              </text>
-            </>
-          )}
-          {/* Original (ghost when modified) */}
+          {/* Original line (ghost when modified) */}
           {isModified && (
             <path d={originalPath} fill="none" stroke="var(--muted)" strokeWidth={1.2}
               strokeDasharray="4,4" opacity={0.4} />
           )}
-          {/* Main / sandbox line */}
+          {/* Sandbox line */}
           <path d={sandboxPath} fill="none"
             stroke={isModified ? "var(--accent)" : "var(--muted)"}
             strokeWidth={2} />
+          {/* End labels */}
           <text x={toX(sandboxCum.length - 1) + 4} y={toY(sandboxCum[sandboxCum.length - 1]) - 6}
             fill={isModified ? "var(--accent)" : "var(--muted)"} fontSize={10}
             fontFamily="monospace" fontWeight={600}>
@@ -2072,30 +1923,20 @@ function SandboxTab({ data }) {
             </text>
           )}
         </svg>
-        <div className="sandbox-chart-legend">
-          {isModified && (
-            <>
-              <span className="sandbox-legend-item">
-                <span className="sandbox-legend-line sandbox-legend-dashed" /> Original
-              </span>
-              <span className="sandbox-legend-item sandbox-legend-modified">
-                <span className="sandbox-legend-line sandbox-legend-solid" /> Modified
-              </span>
-            </>
-          )}
-          {spyPath && (
-            <button
-              className={`sandbox-spy-toggle ${showSpy ? "active" : ""}`}
-              onClick={() => setShowSpy(s => !s)}
-            >
-              <span className="sandbox-legend-line sandbox-legend-spy" />
-              S&P 500
-            </button>
-          )}
-        </div>
+        {/* Legend */}
+        {isModified && (
+          <div className="sandbox-chart-legend">
+            <span className="sandbox-legend-item">
+              <span className="sandbox-legend-line sandbox-legend-dashed" /> Original
+            </span>
+            <span className="sandbox-legend-item sandbox-legend-modified">
+              <span className="sandbox-legend-line sandbox-legend-solid" /> Modified
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Factor Exposures */}
+      {/* Factor controls */}
       <div className="sandbox-controls-header">
         <span className="sandbox-controls-title">Factor Exposures</span>
       </div>
@@ -2112,14 +1953,11 @@ function SandboxTab({ data }) {
                 <span>{f}</span>
               </div>
               <div className="sandbox-stepper-controls">
-                <HoldButton className="sandbox-step-btn" onStep={() => updateBeta(f, Math.round((val - step) * 1000) / 1000)}>-</HoldButton>
-                <StepperInput
-                  value={val}
-                  onChange={(v) => updateBeta(f, Math.round(v * 1000) / 1000)}
-                  format={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(3)}`}
-                  className={val === 0 ? "" : val > 0 ? "pos" : "neg"}
-                />
-                <HoldButton className="sandbox-step-btn" onStep={() => updateBeta(f, Math.round((val + step) * 1000) / 1000)}>+</HoldButton>
+                <button className="sandbox-step-btn" onClick={() => updateBeta(f, Math.round((val - step) * 1000) / 1000)}>-</button>
+                <span className={`sandbox-beta-value ${val === 0 ? "" : val > 0 ? "pos" : "neg"}`}>
+                  {val >= 0 ? "+" : ""}{val.toFixed(3)}
+                </span>
+                <button className="sandbox-step-btn" onClick={() => updateBeta(f, Math.round((val + step) * 1000) / 1000)}>+</button>
                 <button className={`sandbox-zero-btn ${val === 0 ? "active" : ""}`} onClick={() => updateBeta(f, 0)}>0</button>
                 <button className="sandbox-reset-one-btn" onClick={() => updateBeta(f, def)} title="Reset to regression estimate">RST</button>
               </div>
@@ -2134,63 +1972,15 @@ function SandboxTab({ data }) {
             <span>Alpha (ann.)</span>
           </div>
           <div className="sandbox-stepper-controls">
-            <HoldButton className="sandbox-step-btn" onStep={() => setAlpha(Math.round((alpha - 0.01) * 1000) / 1000)}>-</HoldButton>
-            <StepperInput
-              value={alpha}
-              onChange={(v) => setAlpha(Math.round(v / 100 * 1000) / 1000)}
-              format={(v) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%`}
-              parse={(v, dir) => dir === "toRaw" ? +(v * 100).toFixed(3) : v}
-              className={alpha === 0 ? "" : "sandbox-alpha-val"}
-            />
-            <HoldButton className="sandbox-step-btn" onStep={() => setAlpha(Math.round((alpha + 0.01) * 1000) / 1000)}>+</HoldButton>
+            <button className="sandbox-step-btn" onClick={() => setAlpha(Math.round((alpha - 0.01) * 1000) / 1000)}>-</button>
+            <span className={`sandbox-beta-value ${alpha === 0 ? "" : "sandbox-alpha-val"}`}>
+              {alpha >= 0 ? "+" : ""}{(alpha * 100).toFixed(1)}%
+            </span>
+            <button className="sandbox-step-btn" onClick={() => setAlpha(Math.round((alpha + 0.01) * 1000) / 1000)}>+</button>
             <button className={`sandbox-zero-btn ${alpha === 0 ? "active" : ""}`} onClick={() => setAlpha(0)}>0</button>
           </div>
         </div>
       </div>
-
-      {/* Portfolio weights (portfolio mode only) */}
-      {isPortfolio && (
-        <>
-          <div className="sandbox-controls-header" style={{ marginTop: "1rem" }}>
-            <span className="sandbox-controls-title">Portfolio Weights</span>
-            <span className="sandbox-controls-hint">Adjusting weights updates factor betas proportionally</span>
-          </div>
-          <div className="sandbox-steppers">
-            {tickers.map((t, i) => {
-              const raw = weights[t] ?? 1;
-              const pct = (effectiveWeights[t] || 0) * 100;
-              return (
-                <div key={t} className="sandbox-stepper">
-                  <div className="sandbox-stepper-label">
-                    <span className="factor-legend-swatch" style={{ background: tickerColorMap[t] || HBAR_PALETTE[i % HBAR_PALETTE.length] }} />
-                    <span>{t}</span>
-                    <span className="sandbox-weight-pct">{pct.toFixed(1)}%</span>
-                  </div>
-                  <div className="sandbox-stepper-controls">
-                    <HoldButton className="sandbox-step-btn" onStep={() => updateWeight(t, Math.round((raw - wStep) * 1000) / 1000)}>-</HoldButton>
-                    <StepperInput
-                      value={raw}
-                      onChange={(v) => updateWeight(t, Math.max(0, Math.round(v * 1000) / 1000))}
-                      format={(v) => v.toFixed(2)}
-                      className=""
-                    />
-                    <HoldButton className="sandbox-step-btn" onStep={() => updateWeight(t, Math.round((raw + wStep) * 1000) / 1000)}>+</HoldButton>
-                    <button
-                      className={`sandbox-zero-btn ${raw === 0 ? "active" : ""}`}
-                      onClick={() => updateWeight(t, 0)}
-                    >0</button>
-                    <button
-                      className="sandbox-reset-one-btn"
-                      onClick={() => updateWeight(t, 1)}
-                      title="Reset to equal weight"
-                    >EQL</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
 
       {/* Snapshot */}
       {isModified && (
@@ -2222,7 +2012,7 @@ function SandboxTab({ data }) {
 
       <p className="backtest-disclaimer">
         What-if analysis using actual factor returns and regression residuals.
-        Adjust betas or portfolio weights to explore counterfactual return scenarios.
+        Adjust betas to explore counterfactual return scenarios.
       </p>
     </div>
   );
